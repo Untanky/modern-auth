@@ -39,7 +39,7 @@ func (repo *GormTenancyRepository[IdType, Type]) FindAll(ctx context.Context) ([
 
 func (repo *GormTenancyRepository[IdType, Type]) FindById(ctx context.Context, id IdType) (Type, error) {
 	var entity Type
-	err := repo.db.WithContext(ctx).First(&entity, id).Error
+	err := repo.db.WithContext(ctx).First(&entity, "id = ?", id).Error
 	return entity, err
 }
 

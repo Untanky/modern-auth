@@ -18,9 +18,9 @@ func (p Person) String() string {
 }
 
 func main() {
-	app := core.NewApp(core.NewParentModule(core.NewDatabaseModule(nil)))
+	app := App{}
 	app.Start()
-	app.Stop()
+	defer app.Stop()
 
 	// runInMemoryKeyValueStore()
 	// runGormRepository()
