@@ -12,11 +12,11 @@ type KeyValueStore[Key comparable, Type interface{}] interface {
 	Delete(key Key) error
 }
 
-type InMemoryKeyValueStore[Type fmt.Stringer] struct {
+type InMemoryKeyValueStore[Type interface{}] struct {
 	storage map[string]Type
 }
 
-func NewInMemoryKeyValueStore[Type fmt.Stringer]() *InMemoryKeyValueStore[Type] {
+func NewInMemoryKeyValueStore[Type interface{}]() *InMemoryKeyValueStore[Type] {
 	return &InMemoryKeyValueStore[Type]{
 		storage: make(map[string]Type),
 	}

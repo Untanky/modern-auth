@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Untanky/modern-auth/internal/core"
-	client "github.com/Untanky/modern-auth/internal/oauth2"
+	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
@@ -32,19 +32,24 @@ func (a *App) Start() {
 
 	a.db = a.connect()
 	a.migrateEntities([]interface{}{
-		client.ClientModel{},
+		oauth2.ClientModel{},
 	})
 
 	logger.Debug("Initialize services starting")
-	clientRepo := core.NewGormRepository[string, *client.ClientModel](a.db)
-	clientService := client.NewClientService(clientRepo)
-	clientController := client.NewClientController(clientService)
+	clientRepo := core.NewGormRepository[string, *oauth2.ClientModel](a.db)
+	clientService := oauth2.NewClientService(clientRepo)
+	clientController := oauth2.NewClientController(clientService)
+
+	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, clientService)
+	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 	logger.Info("Initialize services successful")
 
 	r := gin.Default()
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
 	clientController.RegisterRoutes(api.Group("/client"))
+	authorizationController.RegisterRoutes(api.Group("/oauth2"))
 	logger.Info("Router setup successful")
 
 	logger.Info("Application initialization successful")
