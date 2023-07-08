@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
@@ -21,25 +22,37 @@ type AuthorizationRequest struct {
 type AuthorizationResponse struct {
 	RedirectUri string
 	State       string
+	Issuer      string
 	Code        string
+}
+
+func (r *AuthorizationResponse) BuildResponseURI() string {
+	return fmt.Sprintf("%s?code=%s&state=%s&iss=%s", r.RedirectUri, r.Code, r.State, r.Issuer)
 }
 
 type AuthorizationError struct {
 	RedirectUri string
 	State       string
+	Issuer      string
 	Error       string
 	Description string
 }
 
+func (e *AuthorizationError) BuildResponseURI() string {
+	return fmt.Sprintf("%s?error=%s&error_description=%s&state=%s&iss=%s", e.RedirectUri, e.Error, e.Description, e.State, e.Issuer)
+}
+
 type AuthorizationStore = core.KeyValueStore[string, AuthorizationRequest]
+type CodeStore = core.KeyValueStore[string, AuthorizationRequest]
 
 type AuthorizationService struct {
 	authorizationStore AuthorizationStore
+	codeStore          CodeStore
 	clientService      *ClientService
 }
 
-func NewAuthorizationService(authorizationStore AuthorizationStore, clientService *ClientService) *AuthorizationService {
-	return &AuthorizationService{authorizationStore: authorizationStore, clientService: clientService}
+func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService) *AuthorizationService {
+	return &AuthorizationService{authorizationStore: authorizationStore, codeStore: codeStore, clientService: clientService}
 }
 
 // Note: maybe the function argument should be a dto instead of a request...
@@ -86,6 +99,28 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 	return stringUuid, nil
 }
 
+func (s *AuthorizationService) Succeed(uuid string) (*AuthorizationResponse, *AuthorizationError) {
+	request, err := s.authorizationStore.Get(uuid)
+	if err != nil {
+		return nil, &AuthorizationError{
+			RedirectUri: request.RedirectUri,
+			State:       request.State,
+			Error:       "server_error",
+		}
+	}
+	s.authorizationStore.Delete(uuid)
+
+	code := "1234567890" // TODO: generate code
+	s.authorizationStore.Set(code, request)
+
+	return &AuthorizationResponse{
+		RedirectUri: request.RedirectUri,
+		Code:        code,
+		State:       request.State,
+		Issuer:      "https://localhost:8080",
+	}, nil
+}
+
 type AuthorizationController struct {
 	authorizationService *AuthorizationService
 }
@@ -96,6 +131,7 @@ func NewAuthorizationController(authorizationService *AuthorizationService) *Aut
 
 func (c *AuthorizationController) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/authorization", c.authorize)
+	router.GET("/authorization/succeed", c.succeed)
 }
 
 func (c *AuthorizationController) authorize(ctx *gin.Context) {
@@ -111,8 +147,22 @@ func (c *AuthorizationController) authorize(ctx *gin.Context) {
 
 	uuid, err := c.authorizationService.Authorize(request)
 	if err != nil {
-		ctx.Redirect(302, err.RedirectUri)
+		ctx.Redirect(302, err.BuildResponseURI())
 	}
 	ctx.SetCookie("authorization", uuid, 0, "/", "", false, true)
 	ctx.Redirect(302, "/index.html")
+}
+
+func (c *AuthorizationController) succeed(ctx *gin.Context) {
+	uuid, err := ctx.Cookie("authorization")
+	if err != nil {
+		ctx.Redirect(302, "/index.html")
+		return
+	}
+	response, authorizationErr := c.authorizationService.Succeed(uuid)
+	if err != nil {
+		ctx.Redirect(302, authorizationErr.BuildResponseURI())
+		return
+	}
+	ctx.Redirect(302, response.BuildResponseURI())
 }

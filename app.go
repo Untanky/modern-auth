@@ -41,7 +41,8 @@ func (a *App) Start() {
 	clientController := oauth2.NewClientController(clientService)
 
 	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
-	authorizationService := oauth2.NewAuthorizationService(authorizationStore, clientService)
+	codeStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService)
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 	logger.Info("Initialize services successful")
 
