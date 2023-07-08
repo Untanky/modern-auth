@@ -22,45 +22,45 @@ type TenancyRepository[IdType comparable, Type interface{}] interface {
 }
 
 type GormTenancyRepository[IdType comparable, Type interface{}] struct {
-	DB *gorm.DB
+	db *gorm.DB
 }
 
 func NewGormRepository[IdType comparable, Type interface{}](db *gorm.DB) *GormTenancyRepository[IdType, Type] {
 	return &GormTenancyRepository[IdType, Type]{
-		DB: db,
+		db: db,
 	}
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) FindAll(ctx context.Context) ([]Type, error) {
 	var entities []Type
-	err := repo.DB.WithContext(ctx).Find(&entities).Error
+	err := repo.db.WithContext(ctx).Find(&entities).Error
 	return entities, err
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) FindById(ctx context.Context, id IdType) (Type, error) {
 	var entity Type
-	err := repo.DB.WithContext(ctx).First(&entity, id).Error
+	err := repo.db.WithContext(ctx).First(&entity, id).Error
 	return entity, err
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) FindAllByTenantId(ctx context.Context, tenantId string) ([]Type, error) {
 	var entities []Type
-	err := repo.DB.WithContext(ctx).Where("tenant_id = ?", tenantId).Find(&entities).Error
+	err := repo.db.WithContext(ctx).Where("tenant_id = ?", tenantId).Find(&entities).Error
 	return entities, err
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) Save(ctx context.Context, entity Type) error {
-	err := repo.DB.WithContext(ctx).Create(&entity).Error
+	err := repo.db.WithContext(ctx).Create(&entity).Error
 	return err
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) Update(ctx context.Context, entity Type) error {
-	err := repo.DB.WithContext(ctx).Save(&entity).Error
+	err := repo.db.WithContext(ctx).Save(&entity).Error
 	return err
 }
 
 func (repo *GormTenancyRepository[IdType, Type]) DeleteById(ctx context.Context, id IdType) error {
-	db := repo.DB.WithContext(ctx)
+	db := repo.db.WithContext(ctx)
 	entity, err := repo.FindById(ctx, id)
 	if err != nil {
 		return err

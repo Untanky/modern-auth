@@ -14,7 +14,7 @@ func (p Person) String() string {
 	return p.Name
 }
 
-func KeyValueStoreFullFlow(t *testing.T) {
+func TestKeyValueStoreFullFlow(t *testing.T) {
 	tests := []struct {
 		name  string
 		store core.KeyValueStore[string, Person]

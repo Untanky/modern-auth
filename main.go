@@ -18,8 +18,12 @@ func (p Person) String() string {
 }
 
 func main() {
-	runInMemoryKeyValueStore()
-	runGormRepository()
+	app := core.NewApp(core.NewParentModule(core.NewDatabaseModule(nil)))
+	app.Start()
+	app.Stop()
+
+	// runInMemoryKeyValueStore()
+	// runGormRepository()
 }
 
 func runInMemoryKeyValueStore() {
