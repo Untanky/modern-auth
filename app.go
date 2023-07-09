@@ -45,7 +45,11 @@ func (a *App) Start() {
 	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService)
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
-	oauthTokenService := oauth2.NewOAuthTokenService(codeStore)
+	accessTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
+	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore)
+	refreshTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
+	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore)
+	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler)
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 	logger.Info("Initialize services successful")
 

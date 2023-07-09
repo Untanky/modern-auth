@@ -19,6 +19,10 @@ type AuthorizationRequest struct {
 	CodeMethod    string
 }
 
+type ResponseUriBuilder interface {
+	BuildResponseURI() string
+}
+
 type AuthorizationResponse struct {
 	RedirectUri string
 	State       string
@@ -55,7 +59,6 @@ func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore Co
 	return &AuthorizationService{authorizationStore: authorizationStore, codeStore: codeStore, clientService: clientService}
 }
 
-// Note: maybe the function argument should be a dto instead of a request...
 func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string, *AuthorizationError) {
 	client, err := s.clientService.FindById(context.TODO(), request.ClientId)
 	if err != nil {
@@ -100,26 +103,41 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 	return stringUuid, nil
 }
 
-func (s *AuthorizationService) Succeed(uuid string) (*AuthorizationResponse, *AuthorizationError) {
+func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 	request, err := s.authorizationStore.Get(uuid)
 	if err != nil {
-		return nil, &AuthorizationError{
+		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
 			Error:       "server_error",
 		}
 	}
-	s.authorizationStore.Delete(uuid)
 
-	code := "1234567890" // TODO: generate code
+	err = s.authorizationStore.Delete(uuid)
+	if err != nil {
+		return &AuthorizationError{
+			RedirectUri: request.RedirectUri,
+			State:       request.State,
+			Error:       "server_error",
+		}
+	}
+
+	code := randomString(32) // TODO: generate code
 	err = s.codeStore.Set(code, request)
+	if err != nil {
+		return &AuthorizationError{
+			RedirectUri: request.RedirectUri,
+			State:       request.State,
+			Error:       "server_error",
+		}
+	}
 
 	return &AuthorizationResponse{
 		RedirectUri: request.RedirectUri,
 		Code:        code,
 		State:       request.State,
 		Issuer:      "https://localhost:8080",
-	}, nil
+	}
 }
 
 type AuthorizationController struct {
@@ -160,10 +178,6 @@ func (c *AuthorizationController) succeed(ctx *gin.Context) {
 		ctx.Redirect(302, "/index.html")
 		return
 	}
-	response, authorizationErr := c.authorizationService.Succeed(uuid)
-	if err != nil {
-		ctx.Redirect(302, authorizationErr.BuildResponseURI())
-		return
-	}
+	response := c.authorizationService.Succeed(uuid)
 	ctx.Redirect(302, response.BuildResponseURI())
 }

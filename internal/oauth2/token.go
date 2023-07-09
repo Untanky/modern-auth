@@ -1,11 +1,10 @@
 package oauth2
 
 import (
-	"crypto"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -25,7 +24,7 @@ type AuthorizationCodeTokenRequest struct {
 	CodeVerifier string `form:"code_verifier"`
 }
 
-type authoritzationGrant struct {
+type AuthorizationGrant struct {
 	IssueRefreshToken bool
 	ID                uuid.UUID
 	Scope             string
@@ -37,37 +36,46 @@ type authoritzationGrant struct {
 }
 
 type TokenResponse struct {
-	AccessToken  string
-	TokenType    string
-	ExpiresIn    int
-	Scope        string
-	RefreshToken string
+	AccessToken  string `json:"access_token" binding:"required"`
+	TokenType    string `json:"token_type" binding:"required"`
+	ExpiresIn    int    `json:"expires_in" binding:"required"`
+	Scope        string `json:"scope" binding:"required"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type TokenError struct {
-	Error            string
-	ErrorDescription string
+	ErrorTitle       string `json:"error" binding:"required"`
+	ErrorDescription string `json:"error_description" binding:"required"`
+}
+
+func (e *TokenError) Error() string {
+	return e.ErrorDescription
 }
 
 type OAuthTokenService struct {
-	codeStore CodeStore
+	codeStore           CodeStore
+	accessTokenHandler  TokenHandler
+	refreshTokenHandler TokenHandler
 }
 
-func NewOAuthTokenService(codeStore CodeStore) *OAuthTokenService {
-	return &OAuthTokenService{codeStore: codeStore}
+func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler) *OAuthTokenService {
+	return &OAuthTokenService{
+		codeStore:           codeStore,
+		accessTokenHandler:  accessTokenHandler,
+		refreshTokenHandler: refreshTokenHandler,
+	}
 }
 
 func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenError) {
 	// validate request
-	var grant *authoritzationGrant
+	var grant *AuthorizationGrant
 	var err *TokenError
 	switch actualRequest := request.(type) {
 	case *AuthorizationCodeTokenRequest:
 		grant, err = s.authorizationCodeToken(actualRequest)
 	default:
-		log.Println(request)
 		return nil, &TokenError{
-			Error:            "unsupported_grant_type",
+			ErrorTitle:       "unsupported_grant_type",
 			ErrorDescription: "grant type not supported",
 		}
 	}
@@ -76,11 +84,21 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 		return nil, err
 	}
 
-	// generate token
-	accessToken := "abc"
-	refreshToken := "def"
-
-	// store grant with token
+	accessToken, e := s.accessTokenHandler.GenerateToken(grant)
+	if e != nil {
+		return nil, &TokenError{
+			ErrorTitle:       "server_error",
+			ErrorDescription: "failed to generate access token",
+		}
+	}
+	var refreshToken string
+	if grant.IssueRefreshToken {
+		refreshToken, e = s.refreshTokenHandler.GenerateToken(grant)
+		if e != nil {
+			// Could not generate refresh token, so don't issue one
+			refreshToken = ""
+		}
+	}
 
 	return &TokenResponse{
 		AccessToken:  accessToken,
@@ -91,10 +109,10 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 	}, nil
 }
 
-func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCodeTokenRequest) (*authoritzationGrant, *TokenError) {
+func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCodeTokenRequest) (*AuthorizationGrant, *TokenError) {
 	if tokenRequest.GrantType != "authorization_code" {
 		return nil, &TokenError{
-			Error:            "unsupported_grant_type",
+			ErrorTitle:       "unsupported_grant_type",
 			ErrorDescription: "grant type not supported",
 		}
 	}
@@ -102,33 +120,33 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 	authorizationRequest, err := s.codeStore.Get(tokenRequest.Code)
 	if err != nil {
 		return nil, &TokenError{
-			Error:            "invalid_grant",
+			ErrorTitle:       "invalid_grant",
 			ErrorDescription: "authorization code not found",
 		}
 	}
 
 	if authorizationRequest.ClientId != tokenRequest.ClientId {
 		return nil, &TokenError{
-			Error:            "invalid_grant",
+			ErrorTitle:       "invalid_grant",
 			ErrorDescription: "client id does not match",
 		}
 	}
 
 	if authorizationRequest.RedirectUri != tokenRequest.RedirectUri {
 		return nil, &TokenError{
-			Error:            "invalid_grant",
+			ErrorTitle:       "invalid_grant",
 			ErrorDescription: "redirect uri does not match",
 		}
 	}
 
 	if authorizationRequest.CodeChallenge != "" && authorizationRequest.CodeChallenge != hash(tokenRequest.CodeVerifier) {
 		return nil, &TokenError{
-			Error:            "invalid_grant",
+			ErrorTitle:       "invalid_grant",
 			ErrorDescription: "code verifier invalid",
 		}
 	}
 
-	return &authoritzationGrant{
+	return &AuthorizationGrant{
 		IssueRefreshToken: true,
 		ID:                uuid.New(),
 		Scope:             authorizationRequest.Scope,
@@ -137,6 +155,35 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 		IssuedAt:          time.Now(),
 		ExpiresAt:         time.Now().Add(time.Hour),
 	}, nil
+}
+
+type TokenHandler interface {
+	GenerateToken(grant *AuthorizationGrant) (string, error)
+	Validate(token string) (*AuthorizationGrant, error)
+}
+
+type TokenStore = core.KeyValueStore[string, AuthorizationGrant]
+
+type RandomTokenHandler struct {
+	tokenSize int
+	store     TokenStore
+}
+
+func NewRandomTokenHandler(tokenSize int, store TokenStore) *RandomTokenHandler {
+	return &RandomTokenHandler{tokenSize: tokenSize, store: store}
+}
+
+func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, error) {
+	token := randomString(h.tokenSize)
+	err := h.store.Set(token, grant)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func (h *RandomTokenHandler) Validate(token string) (*AuthorizationGrant, error) {
+	return h.store.Get(token)
 }
 
 type TokenController struct {
@@ -174,11 +221,4 @@ func (c *TokenController) token(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, tokenResponse)
-}
-
-// function to hash a string
-func hash(s string) string {
-	hash := crypto.SHA256.New()
-	hash.Write([]byte(s))
-	return string(hash.Sum(nil))
 }
