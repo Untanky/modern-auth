@@ -66,6 +66,7 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 			Description: "client not found",
 		}
 	}
+
 	if request.RedirectUri == "" {
 		request.RedirectUri = client.RedirectURIs[0]
 	} else if !client.ValidateRedirectURI(context.TODO(), request.RedirectUri) {
@@ -111,7 +112,7 @@ func (s *AuthorizationService) Succeed(uuid string) (*AuthorizationResponse, *Au
 	s.authorizationStore.Delete(uuid)
 
 	code := "1234567890" // TODO: generate code
-	s.authorizationStore.Set(code, request)
+	err = s.codeStore.Set(code, request)
 
 	return &AuthorizationResponse{
 		RedirectUri: request.RedirectUri,
@@ -129,7 +130,7 @@ func NewAuthorizationController(authorizationService *AuthorizationService) *Aut
 	return &AuthorizationController{authorizationService: authorizationService}
 }
 
-func (c *AuthorizationController) RegisterRoutes(router *gin.RouterGroup) {
+func (c *AuthorizationController) RegisterRoutes(router gin.IRouter) {
 	router.GET("/authorization", c.authorize)
 	router.GET("/authorization/succeed", c.succeed)
 }

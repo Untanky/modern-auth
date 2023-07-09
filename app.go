@@ -44,13 +44,18 @@ func (a *App) Start() {
 	codeStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
 	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService)
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
+
+	oauthTokenService := oauth2.NewOAuthTokenService(codeStore)
+	tokenController := oauth2.NewTokenController(oauthTokenService)
 	logger.Info("Initialize services successful")
 
 	r := gin.Default()
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
 	clientController.RegisterRoutes(api.Group("/client"))
-	authorizationController.RegisterRoutes(api.Group("/oauth2"))
+	oauth2Router := api.Group("/oauth2")
+	authorizationController.RegisterRoutes(oauth2Router)
+	tokenController.RegisterRoutes(oauth2Router)
 	logger.Info("Router setup successful")
 
 	logger.Info("Application initialization successful")
