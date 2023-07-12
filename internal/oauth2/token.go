@@ -26,6 +26,11 @@ type AuthorizationCodeTokenRequest struct {
 	CodeVerifier string `form:"code_verifier"`
 }
 
+type RefreshTokenRequest struct {
+	tokenRequest
+	RefreshToken string `form:"refresh_token" binding:"required"`
+}
+
 type AuthorizationGrant struct {
 	IssueRefreshToken bool
 	ID                uuid.UUID
@@ -79,6 +84,8 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 	switch actualRequest := request.(type) {
 	case *AuthorizationCodeTokenRequest:
 		grant, err = s.authorizationCodeToken(actualRequest)
+	case *RefreshTokenRequest:
+		grant, err = s.refreshToken(actualRequest)
 	default:
 		return nil, &TokenError{
 			ErrorTitle:       "unsupported_grant_type",
@@ -87,6 +94,7 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 	}
 
 	if err != nil {
+		s.logger.Warnw("Token request failed", "err", err)
 		return nil, err
 	}
 
@@ -173,6 +181,47 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 	}, nil
 }
 
+func (s *OAuthTokenService) refreshToken(tokenRequest *RefreshTokenRequest) (*AuthorizationGrant, *TokenError) {
+	if tokenRequest.GrantType != "refresh_token" {
+		return nil, &TokenError{
+			ErrorTitle:       "unsupported_grant_type",
+			ErrorDescription: "grant type not supported",
+		}
+	}
+
+	grant, err := s.refreshTokenHandler.Validate(tokenRequest.RefreshToken)
+	if err != nil {
+		return nil, &TokenError{
+			ErrorTitle:       "invalid_grant",
+			ErrorDescription: "refresh token not found",
+		}
+	}
+
+	// if grant.Client.ID != tokenRequest.ClientId {
+	// 	return nil, &TokenError{
+	// 		ErrorTitle:       "invalid_grant",
+	// 		ErrorDescription: "client id does not match",
+	// 	}
+	// }
+
+	s.logger.Infow("Successfully validated 'refresh_token' token request",
+		"client_id", tokenRequest.ClientId,
+		"grant_type", "refresh_token",
+		"authorization_id", grant.ID,
+	)
+
+	return &AuthorizationGrant{
+		IssueRefreshToken: false,
+		ID:                grant.ID,
+		Scope:             grant.Scope,
+		Client:            grant.Client,
+		Subject:           grant.Subject,
+		IssuedAt:          time.Now(),
+		ExpiresAt:         time.Now().Add(time.Hour),
+		NotBefore:         time.Now(),
+	}, nil
+}
+
 func (s *OAuthTokenService) Validate(token string) (*AuthorizationGrant, error) {
 	return s.accessTokenHandler.Validate(token)
 }
@@ -233,13 +282,23 @@ func (c *TokenController) token(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
-	if temp.GrantType == "authorization_code" {
+	switch temp.GrantType {
+	case "authorization_code":
 		var authorizationCodeTokenRequest AuthorizationCodeTokenRequest
 		if err := ctx.ShouldBind(&authorizationCodeTokenRequest); err != nil {
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
 		tokenRequest = &authorizationCodeTokenRequest
+	case "refresh_token":
+		var refreshTokenRequest RefreshTokenRequest
+		if err := ctx.ShouldBind(&refreshTokenRequest); err != nil {
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+		tokenRequest = &refreshTokenRequest
+	default:
+		ctx.JSON(http.StatusBadRequest, "invalid grant type")
 	}
 
 	tokenResponse, tokenError := c.tokenService.Token(tokenRequest)
