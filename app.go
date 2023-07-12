@@ -41,7 +41,7 @@ func (a *App) Start() {
 
 	logger.Debug("Initialize services starting")
 	clientRepo := core.NewGormRepository[string, *oauth2.ClientModel](a.db)
-	clientService := oauth2.NewClientService(clientRepo)
+	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
 	clientController := oauth2.NewClientController(clientService)
 
 	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()

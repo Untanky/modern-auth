@@ -7,6 +7,7 @@ import (
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type ClientModel struct {
@@ -56,11 +57,12 @@ type ClientWithSecretDTO struct {
 }
 
 type ClientService struct {
-	repo ClientRepository
+	repo   ClientRepository
+	logger *zap.SugaredLogger
 }
 
-func NewClientService(repo ClientRepository) *ClientService {
-	return &ClientService{repo: repo}
+func NewClientService(repo ClientRepository, logger *zap.SugaredLogger) *ClientService {
+	return &ClientService{repo: repo, logger: logger}
 }
 
 func (s *ClientService) FindById(ctx context.Context, id string) (*Client, error) {
@@ -68,12 +70,31 @@ func (s *ClientService) FindById(ctx context.Context, id string) (*Client, error
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Infow("Found client", "client_id", client.ID)
+
 	return &Client{
 		ID:           client.ID,
 		Scopes:       strings.Split(client.Scopes, ","),
 		RedirectURIs: strings.Split(client.RedirectURIs, ","),
 	}, nil
+}
 
+func (s *ClientService) List(ctx context.Context) ([]*Client, error) {
+	clients, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.logger.Infow("List all clients", "count", len(clients))
+
+	var results []*Client
+	for _, client := range clients {
+		results = append(results, &Client{
+			ID:           client.ID,
+			Scopes:       strings.Split(client.Scopes, ","),
+			RedirectURIs: strings.Split(client.RedirectURIs, ","),
+		})
+	}
+	return results, nil
 }
 
 func (s *ClientService) Create(ctx context.Context, dto ClientDTO) (*Client, error) {
@@ -86,6 +107,7 @@ func (s *ClientService) Create(ctx context.Context, dto ClientDTO) (*Client, err
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Infow("Created client", "client_id", dto.ID)
 
 	client := &Client{
 		ID:           dto.ID,
@@ -104,10 +126,11 @@ func (s *ClientService) Update(ctx context.Context, dto ClientDTO) (*Client, err
 	client.Scopes = strings.Join(dto.Scopes, ",")
 	client.RedirectURIs = strings.Join(dto.RedirectURIs, ",")
 
-	err = s.repo.Save(ctx, client)
+	err = s.repo.Update(ctx, client)
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Infow("Updated client", "client_id", dto.ID)
 
 	return &Client{
 		ID:           dto.ID,
@@ -116,13 +139,21 @@ func (s *ClientService) Update(ctx context.Context, dto ClientDTO) (*Client, err
 	}, nil
 }
 
+func (s *ClientService) Delete(ctx context.Context, id string) error {
+	err := s.repo.DeleteById(ctx, id)
+	if err != nil {
+		return err
+	}
+	s.logger.Infow("Deleted client", "client_id", id)
+	return nil
+}
+
 type ClientController struct {
 	service *ClientService
-	repo    ClientRepository
 }
 
 func NewClientController(service *ClientService) *ClientController {
-	return &ClientController{service: service, repo: service.repo}
+	return &ClientController{service: service}
 }
 
 func (c *ClientController) RegisterRoutes(router gin.IRouter) {
@@ -133,7 +164,7 @@ func (c *ClientController) RegisterRoutes(router gin.IRouter) {
 }
 
 func (c *ClientController) list(ctx *gin.Context) {
-	clients, err := c.repo.FindAll(ctx)
+	clients, err := c.service.List(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -142,8 +173,8 @@ func (c *ClientController) list(ctx *gin.Context) {
 	for _, client := range clients {
 		dtos = append(dtos, ClientDTO{
 			ID:           client.ID,
-			Scopes:       strings.Split(client.Scopes, ","),
-			RedirectURIs: strings.Split(client.RedirectURIs, ","),
+			Scopes:       client.Scopes,
+			RedirectURIs: client.RedirectURIs,
 		})
 	}
 	ctx.JSON(http.StatusOK, dtos)
@@ -185,7 +216,7 @@ func (c *ClientController) create(ctx *gin.Context) {
 
 func (c *ClientController) delete(ctx *gin.Context) {
 	id := ctx.Param("id")
-	err := c.repo.DeleteById(ctx, id)
+	err := c.service.Delete(ctx, id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
