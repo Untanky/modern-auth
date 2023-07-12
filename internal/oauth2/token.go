@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -172,6 +173,10 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 	}, nil
 }
 
+func (s *OAuthTokenService) Validate(token string) (*AuthorizationGrant, error) {
+	return s.accessTokenHandler.Validate(token)
+}
+
 type TokenHandler interface {
 	GenerateToken(grant *AuthorizationGrant) (string, error)
 	Validate(token string) (*AuthorizationGrant, error)
@@ -218,6 +223,7 @@ func NewTokenController(tokenService *OAuthTokenService) *TokenController {
 
 func (c *TokenController) RegisterRoutes(router gin.IRouter) {
 	router.POST("/token", c.token)
+	router.POST("/token/validate", c.validate)
 }
 
 func (c *TokenController) token(ctx *gin.Context) {
@@ -243,4 +249,22 @@ func (c *TokenController) token(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, tokenResponse)
+}
+
+func (c *TokenController) validate(ctx *gin.Context) {
+	authorizationHeader := ctx.GetHeader("Authorization")
+	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
+	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
+		ctx.JSON(http.StatusBadRequest, "invalid authorization header")
+		return
+	}
+	token := authorizationHeaderParts[1]
+
+	grant, err := c.tokenService.Validate(token)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, grant)
 }
