@@ -7,6 +7,7 @@ import (
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type TokenRequest interface {
@@ -56,13 +57,15 @@ type OAuthTokenService struct {
 	codeStore           CodeStore
 	accessTokenHandler  TokenHandler
 	refreshTokenHandler TokenHandler
+	logger              *zap.SugaredLogger
 }
 
-func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler) *OAuthTokenService {
+func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler, logger *zap.SugaredLogger) *OAuthTokenService {
 	return &OAuthTokenService{
 		codeStore:           codeStore,
 		accessTokenHandler:  accessTokenHandler,
 		refreshTokenHandler: refreshTokenHandler,
+		logger:              logger,
 	}
 }
 
@@ -70,6 +73,8 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 	// validate request
 	var grant *AuthorizationGrant
 	var err *TokenError
+	s.logger.Debugw("Handling token request")
+
 	switch actualRequest := request.(type) {
 	case *AuthorizationCodeTokenRequest:
 		grant, err = s.authorizationCodeToken(actualRequest)
@@ -91,12 +96,16 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 			ErrorDescription: "failed to generate access token",
 		}
 	}
+	s.logger.Debugw("Generated access token", "authorization_id", grant.ID)
+
 	var refreshToken string
 	if grant.IssueRefreshToken {
 		refreshToken, e = s.refreshTokenHandler.GenerateToken(grant)
 		if e != nil {
-			// Could not generate refresh token, so don't issue one
+			s.logger.Warnw("Refresh token generation failed", "err", err, "authorization_id", grant.ID)
 			refreshToken = ""
+		} else {
+			s.logger.Debugw("Generated refresh token", "authorization_id", grant.ID)
 		}
 	}
 
@@ -146,9 +155,15 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 		}
 	}
 
+	s.logger.Infow("Successfully validated 'authorization_code' token request",
+		"client_id", tokenRequest.ClientId,
+		"grant_type", "authorization_code",
+		"authorization_id", authorizationRequest.id,
+	)
+
 	return &AuthorizationGrant{
 		IssueRefreshToken: true,
-		ID:                uuid.New(),
+		ID:                authorizationRequest.id,
 		Scope:             authorizationRequest.Scope,
 		Client:            &Client{},
 		Subject:           "xyz",
@@ -167,10 +182,11 @@ type TokenStore = core.KeyValueStore[string, AuthorizationGrant]
 type RandomTokenHandler struct {
 	tokenSize int
 	store     TokenStore
+	logger    *zap.SugaredLogger
 }
 
-func NewRandomTokenHandler(tokenSize int, store TokenStore) *RandomTokenHandler {
-	return &RandomTokenHandler{tokenSize: tokenSize, store: store}
+func NewRandomTokenHandler(tokenSize int, store TokenStore, logger *zap.SugaredLogger) *RandomTokenHandler {
+	return &RandomTokenHandler{tokenSize: tokenSize, store: store, logger: logger}
 }
 
 func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, error) {
@@ -179,11 +195,17 @@ func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, e
 	if err != nil {
 		return "", err
 	}
+	h.logger.Debugw("Generated randomized token", "authorization_id", grant.ID)
 	return token, nil
 }
 
 func (h *RandomTokenHandler) Validate(token string) (*AuthorizationGrant, error) {
-	return h.store.Get(token)
+	grant, err := h.store.Get(token)
+	if err != nil {
+		return nil, err
+	}
+	h.logger.Debugw("Successfully validated token", "authorization_id", grant.ID)
+	return grant, err
 }
 
 type TokenController struct {

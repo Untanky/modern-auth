@@ -1,9 +1,12 @@
 package main
 
 import (
+	"time"
+
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -15,11 +18,12 @@ type App struct {
 	engine *gin.Engine
 }
 
+var perfLogger *zap.Logger
 var logger *zap.SugaredLogger
 
 func init() {
-	log, _ := zap.NewDevelopment()
-	logger = log.Sugar()
+	perfLogger, _ = zap.NewDevelopment()
+	logger = perfLogger.Sugar()
 }
 
 type entitiesKey string
@@ -42,18 +46,22 @@ func (a *App) Start() {
 
 	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
 	codeStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
-	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService)
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService, logger.Named("AuthorizationService"))
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
 	accessTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
-	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore)
+	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore, logger.Named("AccessTokenHandler"))
 	refreshTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
-	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore)
-	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler)
+	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore, logger.Named("RefreshTokenHandler"))
+	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 	logger.Info("Initialize services successful")
 
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(a.loggerMiddleware)
+	r.Use(a.handleRequestId)
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
 	clientController.RegisterRoutes(api.Group("/client"))
@@ -65,6 +73,50 @@ func (a *App) Start() {
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
 	r.Run()
+}
+
+func (a *App) loggerMiddleware(c *gin.Context) {
+	start := time.Now()
+	path := c.Request.URL.Path
+
+	// Process request
+	c.Next()
+
+	msg := ""
+
+	fields := []zap.Field{
+		zap.String("method", c.Request.Method),
+		zap.String("path", path),
+		zap.String("ip", c.ClientIP()),
+		zap.Int("status", c.Writer.Status()),
+		zap.String("user-agent", c.Request.UserAgent()),
+		zap.Duration("latency", time.Since(start)),
+		zap.Int("body-size", c.Writer.Size()),
+		zap.String("request-id", c.GetString("requestId")),
+	}
+
+	// Log using the params
+
+	var logFunc func(msg string, fields ...zap.Field)
+	if c.Writer.Status() >= 500 {
+		logFunc = perfLogger.Error
+	} else {
+		logFunc = perfLogger.Info
+	}
+
+	logFunc(msg, fields...)
+}
+
+func (a *App) handleRequestId(c *gin.Context) {
+	requestId := c.Request.Header.Get("Request-Id")
+	if requestId == "" {
+		requestId = uuid.New().String()
+	}
+
+	c.Set("requestId", requestId)
+	c.Writer.Header().Set("Request-Id", c.GetString("requestId"))
+
+	c.Next()
 }
 
 func (a *App) connect() *gorm.DB {

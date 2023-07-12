@@ -7,9 +7,11 @@ import (
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type AuthorizationRequest struct {
+	id            uuid.UUID
 	ClientId      string
 	RedirectUri   string
 	ResponseType  string
@@ -53,13 +55,15 @@ type AuthorizationService struct {
 	authorizationStore AuthorizationStore
 	codeStore          CodeStore
 	clientService      *ClientService
+	logger             *zap.SugaredLogger
 }
 
-func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService) *AuthorizationService {
-	return &AuthorizationService{authorizationStore: authorizationStore, codeStore: codeStore, clientService: clientService}
+func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService, logger *zap.SugaredLogger) *AuthorizationService {
+	return &AuthorizationService{authorizationStore: authorizationStore, codeStore: codeStore, clientService: clientService, logger: logger}
 }
 
 func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string, *AuthorizationError) {
+	s.logger.Debug("Beginning 'authorization_code' flow")
 	client, err := s.clientService.FindById(context.TODO(), request.ClientId)
 	if err != nil {
 		return "", &AuthorizationError{
@@ -91,6 +95,7 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 	}
 
 	stringUuid := uuid.String()
+	request.id = uuid
 	err = s.authorizationStore.Set(stringUuid, request)
 	if err != nil {
 		return "", &AuthorizationError{
@@ -99,11 +104,13 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 			Error:       "server_error",
 		}
 	}
+	s.logger.Infow("Initialized 'authorization_code' flow", "authorizationId", stringUuid)
 
 	return stringUuid, nil
 }
 
 func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
+	s.logger.Debugw("Continuing 'authorization_code' flow", "authorizationId", uuid)
 	request, err := s.authorizationStore.Get(uuid)
 	if err != nil {
 		return &AuthorizationError{
@@ -131,6 +138,7 @@ func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 			Error:       "server_error",
 		}
 	}
+	s.logger.Infow("Generated authorization code", "authroizationId", uuid)
 
 	return &AuthorizationResponse{
 		RedirectUri: request.RedirectUri,
