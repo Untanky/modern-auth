@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -31,15 +32,21 @@ type RefreshTokenRequest struct {
 	RefreshToken string `form:"refresh_token" binding:"required"`
 }
 
+type timestamp time.Time
+
+func (t *timestamp) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprint(time.Time(*t).Unix())), nil
+}
+
 type AuthorizationGrant struct {
-	IssueRefreshToken bool
-	ID                uuid.UUID
-	Scope             string
-	Client            *Client
-	Subject           string
-	IssuedAt          time.Time
-	ExpiresAt         time.Time
-	NotBefore         time.Time
+	IssueRefreshToken bool      `json:"-"`
+	ID                uuid.UUID `json:"-"`
+	Scope             string    `json:"scope"`
+	ClientId          string    `json:"client_id"`
+	SubjectId         string    `json:"sub"`
+	IssuedAt          timestamp `json:"iat"`
+	ExpiresAt         timestamp `json:"exp"`
+	NotBefore         timestamp `json:"nbf,omitempty"`
 }
 
 type TokenResponse struct {
@@ -121,7 +128,7 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 	return &TokenResponse{
 		AccessToken:  accessToken,
 		TokenType:    "Bearer",
-		ExpiresIn:    int(-time.Since(grant.ExpiresAt).Seconds()),
+		ExpiresIn:    int(-time.Since(time.Time(grant.ExpiresAt)).Seconds()),
 		RefreshToken: refreshToken,
 		Scope:        grant.Scope,
 	}, nil
@@ -174,10 +181,10 @@ func (s *OAuthTokenService) authorizationCodeToken(tokenRequest *AuthorizationCo
 		IssueRefreshToken: true,
 		ID:                authorizationRequest.id,
 		Scope:             authorizationRequest.Scope,
-		Client:            &Client{},
-		Subject:           "xyz",
-		IssuedAt:          time.Now(),
-		ExpiresAt:         time.Now().Add(time.Hour),
+		ClientId:          authorizationRequest.ClientId,
+		SubjectId:         "xyz",
+		IssuedAt:          timestamp(time.Now()),
+		ExpiresAt:         timestamp(time.Now().Add(time.Hour)),
 	}, nil
 }
 
@@ -197,12 +204,12 @@ func (s *OAuthTokenService) refreshToken(tokenRequest *RefreshTokenRequest) (*Au
 		}
 	}
 
-	// if grant.Client.ID != tokenRequest.ClientId {
-	// 	return nil, &TokenError{
-	// 		ErrorTitle:       "invalid_grant",
-	// 		ErrorDescription: "client id does not match",
-	// 	}
-	// }
+	if grant.ClientId != tokenRequest.ClientId {
+		return nil, &TokenError{
+			ErrorTitle:       "invalid_grant",
+			ErrorDescription: "client id does not match",
+		}
+	}
 
 	s.logger.Infow("Successfully validated 'refresh_token' token request",
 		"client_id", tokenRequest.ClientId,
@@ -214,11 +221,11 @@ func (s *OAuthTokenService) refreshToken(tokenRequest *RefreshTokenRequest) (*Au
 		IssueRefreshToken: false,
 		ID:                grant.ID,
 		Scope:             grant.Scope,
-		Client:            grant.Client,
-		Subject:           grant.Subject,
-		IssuedAt:          time.Now(),
-		ExpiresAt:         time.Now().Add(time.Hour),
-		NotBefore:         time.Now(),
+		ClientId:          grant.ClientId,
+		SubjectId:         grant.SubjectId,
+		IssuedAt:          timestamp(time.Now()),
+		ExpiresAt:         timestamp(time.Now().Add(time.Hour)),
+		NotBefore:         timestamp(time.Now()),
 	}, nil
 }
 
