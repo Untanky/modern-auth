@@ -187,5 +187,6 @@ func (c *AuthorizationController) succeed(ctx *gin.Context) {
 		return
 	}
 	response := c.authorizationService.Succeed(uuid)
+	ctx.SetCookie("authorization", "", -1, "/", "", false, true)
 	ctx.Redirect(302, response.BuildResponseURI())
 }
