@@ -252,7 +252,8 @@ func NewRandomTokenHandler(tokenSize int, store TokenStore, logger *zap.SugaredL
 
 func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, error) {
 	token := randomString(h.tokenSize)
-	err := h.store.Set(token, grant)
+	secret := core.NewSecretValue(token)
+	err := h.store.Set(secret.String(), grant)
 	if err != nil {
 		return "", err
 	}
@@ -261,7 +262,8 @@ func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, e
 }
 
 func (h *RandomTokenHandler) Validate(token string) (*AuthorizationGrant, error) {
-	grant, err := h.store.Get(token)
+	secret := core.NewSecretValue(token)
+	grant, err := h.store.Get(secret.String())
 	if err != nil {
 		return nil, err
 	}
