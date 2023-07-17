@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
@@ -57,10 +55,9 @@ func (a *App) Start() {
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 	logger.Info("Initialize services successful")
 
-	gin.SetMode(gin.ReleaseMode)
+	// gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(a.loggerMiddleware)
 	r.Use(a.handleRequestId)
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
@@ -72,39 +69,7 @@ func (a *App) Start() {
 
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
-	r.Run()
-}
-
-func (a *App) loggerMiddleware(c *gin.Context) {
-	start := time.Now()
-	path := c.Request.URL.Path
-
-	// Process request
-	c.Next()
-
-	msg := ""
-
-	fields := []zap.Field{
-		zap.String("method", c.Request.Method),
-		zap.String("path", path),
-		zap.String("ip", c.ClientIP()),
-		zap.Int("status", c.Writer.Status()),
-		zap.String("user-agent", c.Request.UserAgent()),
-		zap.Duration("latency", time.Since(start)),
-		zap.Int("body-size", c.Writer.Size()),
-		zap.String("request-id", c.GetString("requestId")),
-	}
-
-	// Log using the params
-
-	var logFunc func(msg string, fields ...zap.Field)
-	if c.Writer.Status() >= 500 {
-		logFunc = perfLogger.Error
-	} else {
-		logFunc = perfLogger.Info
-	}
-
-	logFunc(msg, fields...)
+	a.engine = r
 }
 
 func (a *App) handleRequestId(c *gin.Context) {
