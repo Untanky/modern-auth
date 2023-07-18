@@ -33,19 +33,19 @@ type contextKeyValueStore[Key comparable, Type interface{}] struct {
 }
 
 func (store *contextKeyValueStore[Key, Type]) Get(key Key) (*Type, error) {
-	_, span := tracer.Start(store.ctx, "keyValueStore.Get")
+	_, span := tracer.Start(store.ctx, "keyValueStore.Get", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	return store.store.Get(key)
 }
 
 func (store *contextKeyValueStore[Key, Type]) Set(key Key, value *Type) error {
-	_, span := tracer.Start(store.ctx, "keyValueStore.Set")
+	_, span := tracer.Start(store.ctx, "keyValueStore.Set", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	return store.store.Set(key, value)
 }
 
 func (store *contextKeyValueStore[Key, Type]) Delete(key Key) error {
-	_, span := tracer.Start(store.ctx, "keyValueStore.Delete")
+	_, span := tracer.Start(store.ctx, "keyValueStore.Delete", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	return store.store.Delete(key)
 }

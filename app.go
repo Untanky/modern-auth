@@ -130,10 +130,10 @@ func (a *App) Start() {
 	a.engine = r
 
 	r.Use(gin.Recovery())
-	r.Use(otelgin.Middleware("modern-auth"))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	r.Use(a.handleRequestId)
+	r.Use(otelgin.Middleware("modern-auth"))
 	r.Use(requestMetrics.handleTelemetry())
 
 	api := r.Group("/v1")
@@ -167,7 +167,7 @@ func (a *App) connect() *gorm.DB {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	if err := db.Use(tracing.NewPlugin()); err != nil {
+	if err := db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
 		panic(err)
 	}
 	logger.Info("Database connection successful")

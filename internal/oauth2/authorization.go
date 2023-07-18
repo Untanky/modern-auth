@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -42,12 +43,16 @@ type AuthorizationError struct {
 	RedirectUri string
 	State       string
 	Issuer      string
-	Error       string
+	ErrorType   string
 	Description string
 }
 
 func (e *AuthorizationError) BuildResponseURI() string {
-	return fmt.Sprintf("%s?error=%s&error_description=%s&state=%s&iss=%s", e.RedirectUri, e.Error, e.Description, e.State, e.Issuer)
+	return fmt.Sprintf("%s?error=%s&error_description=%s&state=%s&iss=%s", e.RedirectUri, e.ErrorType, e.Description, e.State, e.Issuer)
+}
+
+func (e *AuthorizationError) Error() string {
+	return fmt.Sprintf("AuthorizationError: %s", e.Description)
 }
 
 type AuthorizationStore = core.KeyValueStore[string, AuthorizationRequest]
@@ -80,7 +85,7 @@ func (s *AuthorizationService) Authorize(ctx context.Context, request *Authoriza
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "invalid_client",
+			ErrorType:   "invalid_client",
 			Description: "client not found",
 		}
 	}
@@ -91,7 +96,7 @@ func (s *AuthorizationService) Authorize(ctx context.Context, request *Authoriza
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "invalid_request",
+			ErrorType:   "invalid_request",
 			Description: "redirect_uri not allowed",
 		}
 	}
@@ -101,7 +106,7 @@ func (s *AuthorizationService) Authorize(ctx context.Context, request *Authoriza
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "server_error",
+			ErrorType:   "server_error",
 		}
 	}
 
@@ -112,7 +117,7 @@ func (s *AuthorizationService) Authorize(ctx context.Context, request *Authoriza
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "server_error",
+			ErrorType:   "server_error",
 		}
 	}
 	s.logger.Infow("Initialized 'authorization_code' flow", "authorizationId", stringUuid)
@@ -129,7 +134,7 @@ func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) Respons
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "server_error",
+			ErrorType:   "server_error",
 		}
 	}
 
@@ -138,7 +143,7 @@ func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) Respons
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "server_error",
+			ErrorType:   "server_error",
 		}
 	}
 
@@ -148,7 +153,7 @@ func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) Respons
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
-			Error:       "server_error",
+			ErrorType:   "server_error",
 		}
 	}
 	s.logger.Infow("Generated authorization code", "authroizationId", uuid)
@@ -188,7 +193,9 @@ func (c *AuthorizationController) authorize(ctx *gin.Context) {
 
 	uuid, err := c.authorizationService.Authorize(ctx.Request.Context(), request)
 	if err != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
 		ctx.Redirect(302, err.BuildResponseURI())
+		return
 	}
 	ctx.SetCookie("authorization", uuid, 0, "/", "", false, true)
 	ctx.Redirect(302, "/index.html")
@@ -197,6 +204,7 @@ func (c *AuthorizationController) authorize(ctx *gin.Context) {
 func (c *AuthorizationController) succeed(ctx *gin.Context) {
 	uuid, err := ctx.Cookie("authorization")
 	if err != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
 		ctx.Redirect(302, "/index.html")
 		return
 	}

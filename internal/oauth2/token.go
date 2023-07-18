@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -66,7 +67,7 @@ type TokenResponse struct {
 }
 
 type TokenError struct {
-	ErrorTitle       string `json:"error" binding:"required"`
+	ErrorType        string `json:"error" binding:"required"`
 	ErrorDescription string `json:"error_description" binding:"required"`
 }
 
@@ -105,7 +106,7 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 		grant, err = s.refreshToken(ctx, actualRequest)
 	default:
 		return nil, &TokenError{
-			ErrorTitle:       "unsupported_grant_type",
+			ErrorType:        "unsupported_grant_type",
 			ErrorDescription: "grant type not supported",
 		}
 	}
@@ -118,7 +119,7 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 	accessToken, e := s.accessTokenHandler.GenerateToken(ctx, grant)
 	if e != nil {
 		return nil, &TokenError{
-			ErrorTitle:       "server_error",
+			ErrorType:        "server_error",
 			ErrorDescription: "failed to generate access token",
 		}
 	}
@@ -148,7 +149,7 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 func (s *OAuthTokenService) authorizationCodeToken(ctx context.Context, tokenRequest *AuthorizationCodeTokenRequest) (*AuthorizationGrant, *TokenError) {
 	if tokenRequest.GrantType != "authorization_code" {
 		return nil, &TokenError{
-			ErrorTitle:       "unsupported_grant_type",
+			ErrorType:        "unsupported_grant_type",
 			ErrorDescription: "grant type not supported",
 		}
 	}
@@ -156,28 +157,28 @@ func (s *OAuthTokenService) authorizationCodeToken(ctx context.Context, tokenReq
 	authorizationRequest, err := s.codeStore.WithContext(ctx).Get(tokenRequest.Code)
 	if err != nil {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "authorization code not found",
 		}
 	}
 
 	if authorizationRequest.ClientId != tokenRequest.ClientId {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "client id does not match",
 		}
 	}
 
 	if authorizationRequest.RedirectUri != tokenRequest.RedirectUri {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "redirect uri does not match",
 		}
 	}
 
 	if authorizationRequest.CodeChallenge != "" && authorizationRequest.CodeChallenge != hash(tokenRequest.CodeVerifier) {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "code verifier invalid",
 		}
 	}
@@ -202,7 +203,7 @@ func (s *OAuthTokenService) authorizationCodeToken(ctx context.Context, tokenReq
 func (s *OAuthTokenService) refreshToken(ctx context.Context, tokenRequest *RefreshTokenRequest) (*AuthorizationGrant, *TokenError) {
 	if tokenRequest.GrantType != "refresh_token" {
 		return nil, &TokenError{
-			ErrorTitle:       "unsupported_grant_type",
+			ErrorType:        "unsupported_grant_type",
 			ErrorDescription: "grant type not supported",
 		}
 	}
@@ -210,14 +211,14 @@ func (s *OAuthTokenService) refreshToken(ctx context.Context, tokenRequest *Refr
 	grant, err := s.refreshTokenHandler.Validate(ctx, tokenRequest.RefreshToken)
 	if err != nil {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "refresh token not found",
 		}
 	}
 
 	if grant.ClientId != tokenRequest.ClientId {
 		return nil, &TokenError{
-			ErrorTitle:       "invalid_grant",
+			ErrorType:        "invalid_grant",
 			ErrorDescription: "client id does not match",
 		}
 	}
@@ -300,31 +301,34 @@ func (c *TokenController) RegisterRoutes(router gin.IRouter) {
 func (c *TokenController) token(ctx *gin.Context) {
 	var temp tokenRequest
 	var tokenRequest TokenRequest
-	if err := ctx.ShouldBind(&temp); err != nil {
+	var err error
+	if err = ctx.ShouldBind(&temp); err != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
+
 	switch temp.GrantType {
 	case "authorization_code":
 		var authorizationCodeTokenRequest AuthorizationCodeTokenRequest
-		if err := ctx.ShouldBind(&authorizationCodeTokenRequest); err != nil {
-			ctx.JSON(http.StatusBadRequest, err)
-			return
-		}
+		err = ctx.ShouldBind(&authorizationCodeTokenRequest)
 		tokenRequest = &authorizationCodeTokenRequest
 	case "refresh_token":
 		var refreshTokenRequest RefreshTokenRequest
-		if err := ctx.ShouldBind(&refreshTokenRequest); err != nil {
-			ctx.JSON(http.StatusBadRequest, err)
-			return
-		}
+		err = ctx.ShouldBind(&refreshTokenRequest)
 		tokenRequest = &refreshTokenRequest
 	default:
-		ctx.JSON(http.StatusBadRequest, "invalid grant type")
+		err = fmt.Errorf("invalid grant type: %s", temp.GrantType)
+	}
+	if err != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
+		ctx.JSON(http.StatusBadRequest, err)
+		return
 	}
 
 	tokenResponse, tokenError := c.tokenService.Token(ctx.Request.Context(), tokenRequest)
 	if tokenError != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(tokenError)
 		ctx.JSON(http.StatusBadRequest, tokenError)
 		return
 	}
@@ -336,13 +340,16 @@ func (c *TokenController) validate(ctx *gin.Context) {
 	authorizationHeader := ctx.GetHeader("Authorization")
 	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
 	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
-		ctx.JSON(http.StatusBadRequest, "invalid authorization header")
+		err := fmt.Errorf("invalid authorization header")
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	token := authorizationHeaderParts[1]
 
 	grant, err := c.tokenService.Validate(ctx.Request.Context(), token)
 	if err != nil {
+		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
