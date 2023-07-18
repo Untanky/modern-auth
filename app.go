@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 type App struct {
@@ -165,6 +166,9 @@ func (a *App) connect() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
+	}
+	if err := db.Use(tracing.NewPlugin()); err != nil {
+		panic(err)
 	}
 	logger.Info("Database connection successful")
 	return db

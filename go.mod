@@ -55,4 +55,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/sqlite v1.5.2 // indirect
 	gorm.io/gorm v1.25.2 // indirect
+	gorm.io/plugin/opentelemetry v0.1.3 // indirect
 )

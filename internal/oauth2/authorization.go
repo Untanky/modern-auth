@@ -73,9 +73,9 @@ func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore Co
 	}
 }
 
-func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string, *AuthorizationError) {
+func (s *AuthorizationService) Authorize(ctx context.Context, request *AuthorizationRequest) (string, *AuthorizationError) {
 	s.logger.Debug("Beginning 'authorization_code' flow")
-	client, err := s.clientService.FindById(context.TODO(), request.ClientId)
+	client, err := s.clientService.FindById(ctx, request.ClientId)
 	if err != nil {
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
@@ -87,7 +87,7 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 
 	if request.RedirectUri == "" {
 		request.RedirectUri = client.RedirectURIs[0]
-	} else if !client.ValidateRedirectURI(context.TODO(), request.RedirectUri) {
+	} else if !client.ValidateRedirectURI(ctx, request.RedirectUri) {
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
 			State:       request.State,
@@ -107,7 +107,7 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 
 	stringUuid := uuid.String()
 	request.id = uuid
-	err = s.authorizationStore.Set(stringUuid, request)
+	err = s.authorizationStore.WithContext(ctx).Set(stringUuid, request)
 	if err != nil {
 		return "", &AuthorizationError{
 			RedirectUri: request.RedirectUri,
@@ -121,9 +121,10 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 	return stringUuid, nil
 }
 
-func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
+func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) ResponseUriBuilder {
 	s.logger.Debugw("Continuing 'authorization_code' flow", "authorizationId", uuid)
-	request, err := s.authorizationStore.Get(uuid)
+	store := s.authorizationStore.WithContext(ctx)
+	request, err := store.Get(uuid)
 	if err != nil {
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
@@ -132,7 +133,7 @@ func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 		}
 	}
 
-	err = s.authorizationStore.Delete(uuid)
+	err = store.Delete(uuid)
 	if err != nil {
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
@@ -141,8 +142,8 @@ func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 		}
 	}
 
-	code := randomString(32) // TODO: generate code
-	err = s.codeStore.Set(code, request)
+	code := randomString(32)
+	err = s.codeStore.WithContext(ctx).Set(code, request)
 	if err != nil {
 		return &AuthorizationError{
 			RedirectUri: request.RedirectUri,
@@ -151,7 +152,7 @@ func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 		}
 	}
 	s.logger.Infow("Generated authorization code", "authroizationId", uuid)
-	s.authorizationCodeSuccess.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
+	s.authorizationCodeSuccess.Add(ctx, 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
 
 	return &AuthorizationResponse{
 		RedirectUri: request.RedirectUri,
@@ -185,7 +186,7 @@ func (c *AuthorizationController) authorize(ctx *gin.Context) {
 		State:         ctx.Query("state"),
 	}
 
-	uuid, err := c.authorizationService.Authorize(request)
+	uuid, err := c.authorizationService.Authorize(ctx.Request.Context(), request)
 	if err != nil {
 		ctx.Redirect(302, err.BuildResponseURI())
 	}
@@ -199,7 +200,7 @@ func (c *AuthorizationController) succeed(ctx *gin.Context) {
 		ctx.Redirect(302, "/index.html")
 		return
 	}
-	response := c.authorizationService.Succeed(uuid)
+	response := c.authorizationService.Succeed(ctx.Request.Context(), uuid)
 	ctx.SetCookie("authorization", "", -1, "/", "", false, true)
 	ctx.Redirect(302, response.BuildResponseURI())
 }
