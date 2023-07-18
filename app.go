@@ -73,10 +73,22 @@ func (a *App) Start() {
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
 	accessTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
-	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore, logger.Named("AccessTokenHandler"))
+	accessTokensGenerated, err := meter.Int64Counter("access_tokens_generated")
+	if err != nil {
+		log.Fatal(err)
+	}
+	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore, logger.Named("AccessTokenHandler"), accessTokensGenerated)
 	refreshTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
-	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore, logger.Named("RefreshTokenHandler"))
-	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
+	refreshTokensGenerated, err := meter.Int64Counter("refresh_tokens_generated")
+	if err != nil {
+		log.Fatal(err)
+	}
+	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore, logger.Named("RefreshTokenHandler"), refreshTokensGenerated)
+	tokenRequest, err := meter.Int64Counter("token_request")
+	if err != nil {
+		log.Fatal(err)
+	}
+	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"), tokenRequest)
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 	logger.Info("Initialize services successful")
 

@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,15 +10,22 @@ import (
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
 type TokenRequest interface {
+	GetGrantType() string
 }
 
 type tokenRequest struct {
 	GrantType string `form:"grant_type" binding:"required"`
 	ClientId  string `form:"client_id" binding:"required"`
+}
+
+func (r *tokenRequest) GetGrantType() string {
+	return r.GrantType
 }
 
 type AuthorizationCodeTokenRequest struct {
@@ -67,18 +75,20 @@ func (e *TokenError) Error() string {
 }
 
 type OAuthTokenService struct {
-	codeStore           CodeStore
-	accessTokenHandler  TokenHandler
-	refreshTokenHandler TokenHandler
-	logger              *zap.SugaredLogger
+	codeStore              CodeStore
+	accessTokenHandler     TokenHandler
+	refreshTokenHandler    TokenHandler
+	logger                 *zap.SugaredLogger
+	tokenRequestInstrument metric.Int64Counter
 }
 
-func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler, logger *zap.SugaredLogger) *OAuthTokenService {
+func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler, logger *zap.SugaredLogger, tokenRequestInstrument metric.Int64Counter) *OAuthTokenService {
 	return &OAuthTokenService{
-		codeStore:           codeStore,
-		accessTokenHandler:  accessTokenHandler,
-		refreshTokenHandler: refreshTokenHandler,
-		logger:              logger,
+		codeStore:              codeStore,
+		accessTokenHandler:     accessTokenHandler,
+		refreshTokenHandler:    refreshTokenHandler,
+		logger:                 logger,
+		tokenRequestInstrument: tokenRequestInstrument,
 	}
 }
 
@@ -124,6 +134,7 @@ func (s *OAuthTokenService) Token(request TokenRequest) (*TokenResponse, *TokenE
 			s.logger.Debugw("Generated refresh token", "authorization_id", grant.ID)
 		}
 	}
+	s.tokenRequestInstrument.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(grant.ClientId), attribute.Key("grant_type").String(request.GetGrantType())))
 
 	return &TokenResponse{
 		AccessToken:  accessToken,
@@ -241,13 +252,14 @@ type TokenHandler interface {
 type TokenStore = core.KeyValueStore[string, AuthorizationGrant]
 
 type RandomTokenHandler struct {
-	tokenSize int
-	store     TokenStore
-	logger    *zap.SugaredLogger
+	tokenSize       int
+	store           TokenStore
+	logger          *zap.SugaredLogger
+	tokensGenerated metric.Int64Counter
 }
 
-func NewRandomTokenHandler(tokenSize int, store TokenStore, logger *zap.SugaredLogger) *RandomTokenHandler {
-	return &RandomTokenHandler{tokenSize: tokenSize, store: store, logger: logger}
+func NewRandomTokenHandler(tokenSize int, store TokenStore, logger *zap.SugaredLogger, tokensGenerated metric.Int64Counter) *RandomTokenHandler {
+	return &RandomTokenHandler{tokenSize: tokenSize, store: store, logger: logger, tokensGenerated: tokensGenerated}
 }
 
 func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, error) {
@@ -258,6 +270,7 @@ func (h *RandomTokenHandler) GenerateToken(grant *AuthorizationGrant) (string, e
 		return "", err
 	}
 	h.logger.Debugw("Generated randomized token", "authorization_id", grant.ID)
+	h.tokensGenerated.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(grant.ClientId)))
 	return token, nil
 }
 
