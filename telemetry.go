@@ -13,10 +13,10 @@ type requestTelemetry struct {
 	errors       metric.Int64Counter
 	latency      metric.Int64Histogram
 	responseSize metric.Int64Histogram
+	logger       *zap.Logger
 }
 
-func newRequestTelemetry(meter metric.Meter) (*requestTelemetry, error) {
-
+func newRequestTelemetry(meter metric.Meter, logger *zap.Logger) (*requestTelemetry, error) {
 	requestsInstrument, err := meter.Int64Counter("requests")
 	if err != nil {
 		return nil, err
@@ -42,6 +42,7 @@ func newRequestTelemetry(meter metric.Meter) (*requestTelemetry, error) {
 		errors:       errorsInstrument,
 		latency:      latencyInstrument,
 		responseSize: responseSizeInstrument,
+		logger:       logger,
 	}, nil
 }
 
@@ -83,9 +84,9 @@ func (r *requestTelemetry) handleTelemetry() gin.HandlerFunc {
 		// select logger func
 		var logFunc func(msg string, fields ...zap.Field)
 		if isError {
-			logFunc = perfLogger.Error
+			logFunc = r.logger.Error
 		} else {
-			logFunc = perfLogger.Info
+			logFunc = r.logger.Debug
 		}
 
 		// actually log

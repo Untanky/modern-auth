@@ -1,10 +1,15 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -37,6 +42,18 @@ func (a *App) Start() {
 		oauth2.ClientModel{},
 	})
 
+	exporter, err := prometheus.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	provider := metric.NewMeterProvider(metric.WithReader(exporter))
+	meter := provider.Meter("github.com/Untanky/modern-auth")
+
+	requestMetrics, err := newRequestTelemetry(meter, perfLogger.Named("RequestTelemetry"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	logger.Debug("Initialize services starting")
 	clientRepo := core.NewGormRepository[string, *oauth2.ClientModel](a.db)
 	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
@@ -44,7 +61,15 @@ func (a *App) Start() {
 
 	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
 	codeStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
-	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService, logger.Named("AuthorizationService"))
+	authorizationCodeInit, err := meter.Int64Counter("authorization_code_init")
+	if err != nil {
+		log.Fatal(err)
+	}
+	authorizationCodeSuccess, err := meter.Int64Counter("authorization_code_success")
+	if err != nil {
+		log.Fatal(err)
+	}
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService, logger.Named("AuthorizationService"), authorizationCodeInit, authorizationCodeSuccess)
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
 	accessTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
@@ -57,8 +82,14 @@ func (a *App) Start() {
 
 	// gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+	a.engine = r
+
 	r.Use(gin.Recovery())
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	r.Use(a.handleRequestId)
+	r.Use(requestMetrics.handleTelemetry())
+
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
 	clientController.RegisterRoutes(api.Group("/client"))
@@ -69,7 +100,7 @@ func (a *App) Start() {
 
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
-	a.engine = r
+	r.Run(":3000")
 }
 
 func (a *App) handleRequestId(c *gin.Context) {

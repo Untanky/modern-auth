@@ -7,6 +7,8 @@ import (
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
@@ -52,14 +54,23 @@ type AuthorizationStore = core.KeyValueStore[string, AuthorizationRequest]
 type CodeStore = core.KeyValueStore[string, AuthorizationRequest]
 
 type AuthorizationService struct {
-	authorizationStore AuthorizationStore
-	codeStore          CodeStore
-	clientService      *ClientService
-	logger             *zap.SugaredLogger
+	authorizationStore       AuthorizationStore
+	codeStore                CodeStore
+	clientService            *ClientService
+	logger                   *zap.SugaredLogger
+	authorizationCodeInit    metric.Int64Counter
+	authorizationCodeSuccess metric.Int64Counter
 }
 
-func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService, logger *zap.SugaredLogger) *AuthorizationService {
-	return &AuthorizationService{authorizationStore: authorizationStore, codeStore: codeStore, clientService: clientService, logger: logger}
+func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService, logger *zap.SugaredLogger, authorizationCodeInit metric.Int64Counter, authorizationCodeSuccess metric.Int64Counter) *AuthorizationService {
+	return &AuthorizationService{
+		authorizationStore:       authorizationStore,
+		codeStore:                codeStore,
+		clientService:            clientService,
+		logger:                   logger,
+		authorizationCodeInit:    authorizationCodeInit,
+		authorizationCodeSuccess: authorizationCodeSuccess,
+	}
 }
 
 func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string, *AuthorizationError) {
@@ -105,6 +116,7 @@ func (s *AuthorizationService) Authorize(request *AuthorizationRequest) (string,
 		}
 	}
 	s.logger.Infow("Initialized 'authorization_code' flow", "authorizationId", stringUuid)
+	s.authorizationCodeInit.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
 
 	return stringUuid, nil
 }
@@ -139,6 +151,7 @@ func (s *AuthorizationService) Succeed(uuid string) ResponseUriBuilder {
 		}
 	}
 	s.logger.Infow("Generated authorization code", "authroizationId", uuid)
+	s.authorizationCodeSuccess.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
 
 	return &AuthorizationResponse{
 		RedirectUri: request.RedirectUri,
