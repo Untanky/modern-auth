@@ -1,6 +1,9 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -59,20 +62,23 @@ func (a *App) Start() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
 	r.Use(gin.Recovery())
 	r.Use(a.loggerMiddleware)
 	r.Use(a.handleRequestId)
+
 	api := r.Group("/v1")
 	logger.Debug("Router setup starting")
 	clientController.RegisterRoutes(api.Group("/client"))
 	oauth2Router := api.Group("/oauth2")
 	authorizationController.RegisterRoutes(oauth2Router)
 	tokenController.RegisterRoutes(oauth2Router)
+	r.NoRoute(proxy)
 	logger.Info("Router setup successful")
 
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
-	r.Run()
+	r.Run(":3000")
 }
 
 func (a *App) loggerMiddleware(c *gin.Context) {
@@ -138,6 +144,24 @@ func (a *App) migrateEntities(entities []interface{}) {
 		}
 		logger.Info("Entity migration successful")
 	}
+}
+
+// use a proxy locally
+func proxy(c *gin.Context) {
+	remote, err := url.Parse("http://localhost:5173")
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 func (a *App) Stop() {
