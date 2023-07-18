@@ -8,8 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -25,6 +31,37 @@ var perfLogger *zap.Logger
 var logger *zap.SugaredLogger
 
 func init() {
+	traceExporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:14268/api/traces")))
+	if err != nil {
+		log.Fatal(err)
+	}
+	mergedResource, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("ModernAuth"),
+		),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithBatcher(traceExporter),
+		trace.WithResource(mergedResource),
+	)
+
+	otel.SetTracerProvider(tracerProvider)
+
+	meterExporter, err := prometheus.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	meterProvider := metric.NewMeterProvider(metric.WithReader(meterExporter))
+
+	otel.SetMeterProvider(meterProvider)
+
 	perfLogger, _ = zap.NewDevelopment()
 	logger = perfLogger.Sugar()
 }
@@ -42,12 +79,7 @@ func (a *App) Start() {
 		oauth2.ClientModel{},
 	})
 
-	exporter, err := prometheus.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	provider := metric.NewMeterProvider(metric.WithReader(exporter))
-	meter := provider.Meter("github.com/Untanky/modern-auth")
+	meter := otel.GetMeterProvider().Meter("github.com/Untanky/modern-auth")
 
 	requestMetrics, err := newRequestTelemetry(meter, perfLogger.Named("RequestTelemetry"))
 	if err != nil {
@@ -97,6 +129,7 @@ func (a *App) Start() {
 	a.engine = r
 
 	r.Use(gin.Recovery())
+	r.Use(otelgin.Middleware("modern-auth"))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	r.Use(a.handleRequestId)
