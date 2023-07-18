@@ -8,6 +8,7 @@ import (
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/oauth2"
+	"github.com/Untanky/modern-auth/internal/webauthn"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -58,9 +59,11 @@ func (a *App) Start() {
 	refreshTokenHandler := oauth2.NewRandomTokenHandler(64, refreshTokenStore, logger.Named("RefreshTokenHandler"))
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
 	tokenController := oauth2.NewTokenController(oauthTokenService)
+
+	authenticationController := webauthn.NewAuthenticationController()
 	logger.Info("Initialize services successful")
 
-	gin.SetMode(gin.ReleaseMode)
+	// gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
 	r.Use(gin.Recovery())
@@ -73,6 +76,7 @@ func (a *App) Start() {
 	oauth2Router := api.Group("/oauth2")
 	authorizationController.RegisterRoutes(oauth2Router)
 	tokenController.RegisterRoutes(oauth2Router)
+	authenticationController.RegisterRoutes(api.Group("/webauthn"))
 	r.NoRoute(proxy)
 	logger.Info("Router setup successful")
 

@@ -11,6 +11,8 @@
   let error: Error | null = null;
   let userId: string | null = null;
 
+  let credOps: CredentialCreationOptions | null = null;
+
   const onInitiateAuthentication = (): void => {
     const inputElement = document.getElementById('user-id') as HTMLInputElement;
     const inputValue = inputElement.value;
@@ -19,7 +21,8 @@
     loading = true;
 
     initiateAuthentication(inputValue)
-      .then(() => {
+      .then((ops) => {
+        credOps = ops;
         state = 'createCredential';
       })
       .catch((err) => {
@@ -31,11 +34,34 @@
   };
 
   const onCreateCredential = (): void => {
-    console.log('create credential');
+    navigator.credentials.create({
+      publicKey: {
+        ...credOps.publicKey,
+        challenge: parseStringToUint8Array(credOps.publicKey.challenge as unknown as string),
+        rp: {
+          id: credOps.publicKey.rp.id,
+          name: credOps.publicKey.rp.name,
+        },
+        user: {
+          id: parseStringToUint8Array(credOps.publicKey.user.id as unknown as string),
+          name: credOps.publicKey.user.name,
+          displayName: credOps.publicKey.user.displayName,
+        },
+      },
+    });
   };
 
   const onGetCredential = (): void => {
     console.log('create credential');
+  };
+
+  // parse string to uint8 array
+  const parseStringToUint8Array = (str: string): Uint8Array => {
+    const arr = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+      arr[i] = str.charCodeAt(i);
+    }
+    return arr;
   };
 
 </script>
