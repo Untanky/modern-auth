@@ -1,6 +1,10 @@
 package webauthn
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
 
 type InitiateAuthenticationRequest struct {
 	UserId string `json:"userId"`
@@ -54,6 +58,15 @@ func (c *AuthenticationController) RegisterRoutes(router gin.IRoutes) {
 }
 
 func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
+	var request InitiateAuthenticationRequest
+	err := ctx.BindJSON(&request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
+
 	ctx.JSON(200, InitiateAuthenticationResponse{
 		PublicKeyOptions: PublicKeyCredentialRequestOptions{
 			Challenge: []byte("1234567890"),
@@ -62,9 +75,9 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 				Name: "localhost",
 			},
 			User: UserOptions{
-				Id:          []byte("1234567890"),
-				Name:        "test",
-				DisplayName: "test",
+				Id:          []byte(request.UserId),
+				Name:        request.UserId,
+				DisplayName: request.UserId,
 			},
 			PublicKeyCredentialParams: []PublicKeyCredentialParams{
 				{
