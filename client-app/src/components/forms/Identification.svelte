@@ -14,16 +14,16 @@
   <h2 class="text-xl">
     Identification
   </h2>
-  <p>
+  <p class="mt-2">
     To authenticate, we need to know who you are. Please enter your user id.
   </p>
-  <div class="relative mt-2">
+  <div class="relative mt-4">
     <label class="dark:bg-stone-800 px-1 left-3 absolute block" for="user-id">
       User Id:
     </label>
     <input class="dark:bg-stone-800 mt-3.5 px-4 py-2 dark:border-stone-600 border rounded-lg w-full" type="text" id="user-id" placeholder="Your user id" />
   </div>
-  <button type="button" on:click={onClick} class="self-end mt-2 btn btn-primary">
-    Submit
+  <button type="button" on:click={onClick} class="self-end mt-4 btn btn-primary">
+    Continue
   </button>
 </form>
