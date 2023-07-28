@@ -3,7 +3,7 @@
   import IdentificationIcon from './icons/Identification.svelte';
   import PersonIcon from './icons/Person.svelte';
 
-  export let progress = 0.33333;
+  export let progress = 0;
 
   const gradient = `bg-gradient-to-r from-green-400 via-yellow-400 to-stone-50`;
   const fullStone = 'bg-stone-50';

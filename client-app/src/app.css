@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 @layer base {
+  
+
   :root {
     /* normal colors */
     @apply bg-stone-50 text-stone-950;
