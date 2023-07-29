@@ -1,8 +1,13 @@
 package webauthn
 
 import (
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +51,99 @@ type AuthenticationSelection struct {
 	UserVerification        string `json:"userVerification"`
 }
 
+type CreateCredentialRequest struct {
+	Id       string               `json:"id"`
+	Type     string               `json:"type"`
+	Response CreateCredentialData `json:"response"`
+}
+
+type CreateCredentialData struct {
+	AttestationObject AttestationObject `json:"attestationObject"`
+	ClientDataJSON    ClientData        `json:"clientDataJSON"`
+}
+
+type ClientData struct {
+	Type      string `json:"type"`
+	Challenge string `json:"challenge"`
+	Origin    string `json:"origin"`
+}
+
+var base64Encoding = base64.StdEncoding
+
+func decodeBase64(data []byte) ([]byte, error) {
+	res := make([]byte, base64Encoding.DecodedLen(len(data)))
+	_, err := base64Encoding.Decode(res, data)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (c *ClientData) UnmarshalJSON(base64Data []byte) error {
+	data, err := decodeBase64(base64Data[1 : len(base64Data)-1])
+	if err != nil {
+		fmt.Println("ERROR", err)
+		return err
+	}
+
+	var rawClientData map[string]interface{}
+	err = json.Unmarshal(data[:len(data)-1], &rawClientData)
+	if err != nil {
+		return err
+	}
+
+	c.Type = rawClientData["type"].(string)
+	c.Challenge = rawClientData["challenge"].(string)
+	c.Origin = rawClientData["origin"].(string)
+	return nil
+}
+
+type AttestationObject struct {
+	AuthData       AuthData                    `json:"authData"`
+	Format         string                      `json:"fmt"`
+	AttestationRaw map[interface{}]interface{} `json:"attStmt"`
+}
+
+func (a *AttestationObject) UnmarshalJSON(base64Data []byte) error {
+	data, err := decodeBase64(base64Data[1 : len(base64Data)-1])
+	if err != nil {
+		return err
+	}
+
+	var rawAttestationObject map[string]interface{}
+	err = cbor.Unmarshal(data, &rawAttestationObject)
+	if err != nil {
+		return err
+	}
+
+	a.AuthData = a.decodeAuthData(rawAttestationObject["authData"].([]byte))
+	a.Format = rawAttestationObject["fmt"].(string)
+	a.AttestationRaw = rawAttestationObject["attStmt"].(map[interface{}]interface{})
+
+	return nil
+}
+
+func (a *AttestationObject) decodeAuthData(data []byte) AuthData {
+	authData := AuthData{}
+	authData.RPIDHash = data[:32]
+	authData.Flags = data[32]
+	authData.SignCount = data[33:37]
+	authData.AAGUID = data[37:53]
+	credentialIDLength := binary.BigEndian.Uint16(data[53:55])
+	authData.CredentialID = data[55 : 55+credentialIDLength]
+	authData.CredentialPublicKey = data[55+credentialIDLength:]
+	return authData
+}
+
+type AuthData struct {
+	RPIDHash            []byte
+	Flags               byte
+	SignCount           []byte
+	AAGUID              []byte
+	CredentialID        []byte
+	CredentialPublicKey []byte
+}
+
 type AuthenticationController struct {
 }
 
@@ -55,6 +153,7 @@ func NewAuthenticationController() *AuthenticationController {
 
 func (c *AuthenticationController) RegisterRoutes(router gin.IRoutes) {
 	router.POST("/authentication/initiate", c.initiateAuthentication)
+	router.POST("/authentication/create", c.createCredential)
 }
 
 func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
@@ -91,7 +190,25 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 				UserVerification:        "preferred",
 			},
 			Timeout:     60000,
-			Attestation: "none",
+			Attestation: "indirect",
 		},
+	})
+}
+
+func (c *AuthenticationController) createCredential(ctx *gin.Context) {
+	var request CreateCredentialRequest
+	err := ctx.BindJSON(&request)
+	if err != nil {
+		fmt.Println("ERROR", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
+
+	fmt.Println(request)
+
+	ctx.JSON(200, gin.H{
+		"success": true,
 	})
 }

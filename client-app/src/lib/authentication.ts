@@ -10,6 +10,7 @@ export const initiateAuthentication = async (userId: string): Promise<Credential
 
 const utf8Decoder = new TextDecoder('utf-8');
 const createUint8ArrayFrom = (value: string): Uint8Array => Uint8Array.from(value, (c) => c.charCodeAt(0));
+const bufferToBase64 = (buffer: ArrayBuffer): string => btoa(String.fromCharCode(...new Uint8Array(buffer)));
 
 export const signUp = async (credentialOptions: CredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
@@ -41,8 +42,8 @@ const postNewCredential = (credential: PublicKeyCredential): Promise<Response> =
       id: credential.id,
       type: credential.type,
       response: {
-        clientDataJSON: utf8Decoder.decode(clientDataJSON),
-        attestationObject: utf8Decoder.decode(attestationObject),
+        clientDataJSON: bufferToBase64(clientDataJSON),
+        attestationObject: bufferToBase64(attestationObject),
       },
     }),
   });
