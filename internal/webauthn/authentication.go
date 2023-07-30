@@ -1,13 +1,9 @@
 package webauthn
 
 import (
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/Untanky/modern-auth/internal/utils"
-	"github.com/fxamacker/cbor/v2"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,87 +56,75 @@ type CreateCredentialRequest struct {
 }
 
 type CreateCredentialData struct {
-	AttestationObject AttestationObject `json:"attestationObject"`
-	ClientDataJSON    ClientData        `json:"clientDataJSON"`
-}
-
-type ClientData struct {
-	Hash      []byte
-	Type      string `json:"type"`
-	Challenge string `json:"challenge"`
-	Origin    string `json:"origin"`
-}
-
-func (c *ClientData) UnmarshalJSON(base64Data []byte) error {
-	data, err := utils.DecodeBase64(base64Data[1 : len(base64Data)-1])
-	if err != nil {
-		fmt.Println("ERROR", err)
-		return err
-	}
-
-	var rawClientData map[string]interface{}
-	err = json.Unmarshal(data[:len(data)-1], &rawClientData)
-	if err != nil {
-		return err
-	}
-
-	c.Type = rawClientData["type"].(string)
-	c.Challenge = rawClientData["challenge"].(string)
-	c.Origin = rawClientData["origin"].(string)
-	c.Hash = utils.HashSHA256(data)
-	return nil
-}
-
-type AttestationObject struct {
-	AuthData       AuthData                    `json:"authData"`
-	Format         string                      `json:"fmt"`
-	AttestationRaw map[interface{}]interface{} `json:"attStmt"`
-}
-
-func (a *AttestationObject) UnmarshalJSON(base64Data []byte) error {
-	data, err := utils.DecodeBase64(base64Data[1 : len(base64Data)-1])
-	if err != nil {
-		return err
-	}
-
-	var rawAttestationObject map[string]interface{}
-	err = cbor.Unmarshal(data, &rawAttestationObject)
-	if err != nil {
-		return err
-	}
-
-	a.AuthData = a.decodeAuthData(rawAttestationObject["authData"].([]byte))
-	a.Format = rawAttestationObject["fmt"].(string)
-	a.AttestationRaw = rawAttestationObject["attStmt"].(map[interface{}]interface{})
-
-	return nil
-}
-
-func (a *AttestationObject) decodeAuthData(data []byte) AuthData {
-	authData := AuthData{}
-	authData.RPIDHash = data[:32]
-	authData.Flags = data[32]
-	authData.SignCount = data[33:37]
-	authData.AAGUID = data[37:53]
-	credentialIDLength := binary.BigEndian.Uint16(data[53:55])
-	authData.CredentialID = data[55 : 55+credentialIDLength]
-	authData.CredentialPublicKey = data[55+credentialIDLength:]
-	return authData
-}
-
-type AuthData struct {
-	RPIDHash            []byte
-	Flags               byte
-	SignCount           []byte
-	AAGUID              []byte
-	CredentialID        []byte
-	CredentialPublicKey []byte
+	AttestationObject []byte `json:"attestationObject"`
+	ClientDataJSON    []byte `json:"clientDataJSON"`
 }
 
 type UserService interface {
 	IsUserIdAvailable(userId string) bool
 	GetUser(userId string) (interface{}, error)
 	CreateUser(user interface{}) error
+}
+
+type Credential interface{}
+
+type CredentialService interface {
+	GetByCredentialId(id string) (Credential, error)
+	Create(credential Credential) error
+}
+
+type AuthenticationService struct {
+}
+
+func NewAuthenticationService() *AuthenticationService {
+	return &AuthenticationService{}
+}
+
+func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) *InitiateAuthenticationResponse {
+	return &InitiateAuthenticationResponse{
+		PublicKeyOptions: PublicKeyCredentialRequestOptions{
+			// TODO: randomly generate challenge
+			Challenge: []byte("1234567890"),
+			RelyingParty: RelyingPartyOptions{
+				Id:   rpId,
+				Name: "Modern Auth",
+			},
+			User: UserOptions{
+				Id:          []byte(request.UserId),
+				Name:        request.UserId,
+				DisplayName: request.UserId,
+			},
+			PublicKeyCredentialParams: []PublicKeyCredentialParams{
+				{
+					Type: "public-key",
+					Alg:  -7,
+				},
+			},
+			AuthenticationSelection: AuthenticationSelection{
+				AuthenticatorAttachment: "all",
+				RequireResidentKey:      false,
+				UserVerification:        "preferred",
+			},
+			Timeout:     60000,
+			Attestation: "indirect",
+		},
+	}
+}
+
+func (s *AuthenticationService) Register(response *CreateCredentialResponse) error {
+	options := s.InitiateAuthentication(&InitiateAuthenticationRequest{})
+
+	err := response.Validate(options)
+	if err != nil {
+		return err
+	}
+
+	// TODO: assess trust of the authenticator
+
+	// TODO: create user
+	// TODO: link credential to user
+
+	return nil
 }
 
 type AuthenticationController struct {
@@ -174,7 +158,6 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 	var request CreateCredentialRequest
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		fmt.Println("ERROR", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
