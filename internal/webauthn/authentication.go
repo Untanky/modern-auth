@@ -1,15 +1,17 @@
 package webauthn
 
 import (
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/Untanky/modern-auth/internal/utils"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/gin-gonic/gin"
 )
+
+const rpId = "localhost" // TODO: make customizable
 
 type InitiateAuthenticationRequest struct {
 	UserId string `json:"userId"`
@@ -63,24 +65,14 @@ type CreateCredentialData struct {
 }
 
 type ClientData struct {
+	Hash      []byte
 	Type      string `json:"type"`
 	Challenge string `json:"challenge"`
 	Origin    string `json:"origin"`
 }
 
-var base64Encoding = base64.StdEncoding
-
-func decodeBase64(data []byte) ([]byte, error) {
-	res := make([]byte, base64Encoding.DecodedLen(len(data)))
-	_, err := base64Encoding.Decode(res, data)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
 func (c *ClientData) UnmarshalJSON(base64Data []byte) error {
-	data, err := decodeBase64(base64Data[1 : len(base64Data)-1])
+	data, err := utils.DecodeBase64(base64Data[1 : len(base64Data)-1])
 	if err != nil {
 		fmt.Println("ERROR", err)
 		return err
@@ -95,6 +87,7 @@ func (c *ClientData) UnmarshalJSON(base64Data []byte) error {
 	c.Type = rawClientData["type"].(string)
 	c.Challenge = rawClientData["challenge"].(string)
 	c.Origin = rawClientData["origin"].(string)
+	c.Hash = utils.HashSHA256(data)
 	return nil
 }
 
@@ -105,7 +98,7 @@ type AttestationObject struct {
 }
 
 func (a *AttestationObject) UnmarshalJSON(base64Data []byte) error {
-	data, err := decodeBase64(base64Data[1 : len(base64Data)-1])
+	data, err := utils.DecodeBase64(base64Data[1 : len(base64Data)-1])
 	if err != nil {
 		return err
 	}
@@ -144,6 +137,12 @@ type AuthData struct {
 	CredentialPublicKey []byte
 }
 
+type UserService interface {
+	IsUserIdAvailable(userId string) bool
+	GetUser(userId string) (interface{}, error)
+	CreateUser(user interface{}) error
+}
+
 type AuthenticationController struct {
 }
 
@@ -166,33 +165,9 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, InitiateAuthenticationResponse{
-		PublicKeyOptions: PublicKeyCredentialRequestOptions{
-			Challenge: []byte("1234567890"),
-			RelyingParty: RelyingPartyOptions{
-				Id:   "localhost",
-				Name: "localhost",
-			},
-			User: UserOptions{
-				Id:          []byte(request.UserId),
-				Name:        request.UserId,
-				DisplayName: request.UserId,
-			},
-			PublicKeyCredentialParams: []PublicKeyCredentialParams{
-				{
-					Type: "public-key",
-					Alg:  -7,
-				},
-			},
-			AuthenticationSelection: AuthenticationSelection{
-				AuthenticatorAttachment: "all",
-				RequireResidentKey:      false,
-				UserVerification:        "preferred",
-			},
-			Timeout:     60000,
-			Attestation: "indirect",
-		},
-	})
+	response := NewAuthenticationService().InitiateAuthentication(&request)
+
+	ctx.JSON(200, response)
 }
 
 func (c *AuthenticationController) createCredential(ctx *gin.Context) {

@@ -3,7 +3,7 @@ package core
 import (
 	"encoding/base64"
 
-	"golang.org/x/crypto/sha3"
+	"github.com/Untanky/modern-auth/internal/utils"
 )
 
 type SecretValue struct {
@@ -19,13 +19,7 @@ func (s *SecretValue) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SecretValue) String() string {
-	hash := hash_fast(s.value)
+	hash := utils.HashShake256(s.value)
 	base64Encoded := base64.StdEncoding.EncodeToString(hash)
 	return base64Encoded
-}
-
-func hash_fast(s []byte) []byte {
-	h := make([]byte, 64)
-	sha3.ShakeSum256(h, s)
-	return h
 }
