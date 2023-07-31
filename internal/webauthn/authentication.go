@@ -1,7 +1,7 @@
 package webauthn
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,7 @@ type InitiateAuthenticationResponse struct {
 }
 
 type PublicKeyCredentialRequestOptions struct {
-	Challenge                 []byte                      `json:"challenge"`
+	Challenge                 string                      `json:"challenge"`
 	RelyingParty              RelyingPartyOptions         `json:"rp"`
 	User                      UserOptions                 `json:"user"`
 	PublicKeyCredentialParams []PublicKeyCredentialParams `json:"pubKeyCredParams"`
@@ -50,14 +50,9 @@ type AuthenticationSelection struct {
 }
 
 type CreateCredentialRequest struct {
-	Id       string               `json:"id"`
-	Type     string               `json:"type"`
-	Response CreateCredentialData `json:"response"`
-}
-
-type CreateCredentialData struct {
-	AttestationObject []byte `json:"attestationObject"`
-	ClientDataJSON    []byte `json:"clientDataJSON"`
+	Id       string                   `json:"id"`
+	Type     string                   `json:"type"`
+	Response CreateCredentialResponse `json:"response"`
 }
 
 type UserService interface {
@@ -84,7 +79,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 	return &InitiateAuthenticationResponse{
 		PublicKeyOptions: PublicKeyCredentialRequestOptions{
 			// TODO: randomly generate challenge
-			Challenge: []byte("1234567890"),
+			Challenge: "1234567890",
 			RelyingParty: RelyingPartyOptions{
 				Id:   rpId,
 				Name: "Modern Auth",
@@ -128,10 +123,13 @@ func (s *AuthenticationService) Register(response *CreateCredentialResponse) err
 }
 
 type AuthenticationController struct {
+	service *AuthenticationService
 }
 
-func NewAuthenticationController() *AuthenticationController {
-	return &AuthenticationController{}
+func NewAuthenticationController(service *AuthenticationService) *AuthenticationController {
+	return &AuthenticationController{
+		service: service,
+	}
 }
 
 func (c *AuthenticationController) RegisterRoutes(router gin.IRoutes) {
@@ -158,13 +156,21 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 	var request CreateCredentialRequest
 	err := ctx.BindJSON(&request)
 	if err != nil {
+		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
 		return
 	}
 
-	fmt.Println(request)
+	err = c.service.Register(&request.Response)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
 
 	ctx.JSON(200, gin.H{
 		"success": true,

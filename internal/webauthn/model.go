@@ -1,7 +1,10 @@
 package webauthn
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
+	"math/big"
 
 	"encoding/binary"
 	jsonlib "encoding/json"
@@ -28,10 +31,11 @@ func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationRespon
 	if data.Type != "webauthn.create" {
 		return nil, fmt.Errorf("invalid type")
 	}
-	if data.Challenge != string(options.PublicKeyOptions.Challenge) {
+	if data.Challenge != string(utils.EncodeBase64([]byte(options.PublicKeyOptions.Challenge))) {
 		return nil, fmt.Errorf("invalid challenge")
 	}
-	if data.Origin != options.PublicKeyOptions.RelyingParty.Id {
+	// TODO: fix hardcoding
+	if data.Origin != "http://localhost:3000" {
 		return nil, fmt.Errorf("invalid origin")
 	}
 
@@ -45,10 +49,9 @@ type AttestationStatement interface {
 }
 
 type attestationObject struct {
-	AuthData       AuthData
-	Format         string
-	AttestationRaw map[interface{}]interface{}
-	Attestation    AttestationStatement
+	AuthData    AuthData
+	Format      string
+	Attestation AttestationStatement
 }
 
 func (attestation attestationObject) Verify(options *InitiateAuthenticationResponse, clientDataHash []byte) error {
@@ -77,7 +80,25 @@ func (attestation RawAttestationObject) Decode() (*attestationObject, error) {
 	var attestationObject attestationObject
 	attestationObject.AuthData = decodeAuthData(rawAttestationObject["authData"].([]byte))
 	attestationObject.Format = rawAttestationObject["fmt"].(string)
-	attestationObject.AttestationRaw = rawAttestationObject["attStmt"].(map[interface{}]interface{})
+
+	attestationStatement := rawAttestationObject["attStmt"].(map[interface{}]interface{})
+	switch attestationObject.Format {
+	case "packed":
+		certificates := [][]byte{}
+		chain := attestationStatement["x5c"]
+		if chain != nil {
+			for _, cert := range chain.([]interface{}) {
+				certificates = append(certificates, cert.([]byte))
+			}
+		}
+		attestationObject.Attestation = &packedAttestationStatemment{
+			algorithm:        int(attestationStatement["alg"].(int64)),
+			signature:        attestationStatement["sig"].([]byte),
+			certificateChain: certificates,
+		}
+	default:
+		return nil, fmt.Errorf("invalid attestation format")
+	}
 
 	return &attestationObject, nil
 }
@@ -94,19 +115,8 @@ type PublicKey interface {
 	Verify(signature []byte, value []byte) bool
 }
 
-type encodedPublicKey []byte
-
-func (key encodedPublicKey) Algorithm() int {
-	// TODO: implement correctly
-	return -7
-}
-
-func (key encodedPublicKey) Verify(signature []byte, value []byte) bool {
-	// TODO: Implement corrected
-	return true
-}
-
 type AuthData struct {
+	Raw                    []byte
 	RPIDHash               []byte
 	Flags                  AuthFlags
 	SignCount              []byte
@@ -118,6 +128,7 @@ type AuthData struct {
 
 func decodeAuthData(data []byte) AuthData {
 	authData := AuthData{}
+	authData.Raw = data
 	authData.RPIDHash = data[:32]
 	authData.Flags = AuthFlags(data[32])
 	authData.SignCount = data[33:37]
@@ -125,8 +136,35 @@ func decodeAuthData(data []byte) AuthData {
 	credentialIDLength := binary.BigEndian.Uint16(data[53:55])
 	authData.CredentialID = data[55 : 55+credentialIDLength]
 	authData.RawCredentialPublicKey = data[55+credentialIDLength:]
+	publicKey, err := decodeKey(authData.RawCredentialPublicKey)
+	if err != nil {
+		panic(err)
+	}
+	authData.CredentialPublicKey = publicKey
 	// TODO: implement decodePublicKey
 	return authData
+}
+
+func decodeKey(data []byte) (PublicKey, error) {
+	raw := make(map[interface{}]interface{}, 0)
+	err := cbor.Unmarshal(data, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	alg := raw[uint64(3)].(int64)
+	switch alg {
+	case -7:
+		return &es256PublicKey{
+			key: &ecdsa.PublicKey{
+				Curve: elliptic.P256(),
+				X:     big.NewInt(0).SetBytes(raw[int64(-2)].([]byte)),
+				Y:     big.NewInt(0).SetBytes(raw[int64(-3)].([]byte)),
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid algorithm")
+	}
 }
 
 func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
@@ -153,8 +191,8 @@ func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 }
 
 type CreateCredentialResponse struct {
-	ClientDataJSON    RawClientDataJSON
-	AttestationObject RawAttestationObject
+	ClientDataJSON    RawClientDataJSON    `json:"clientDataJSON"`
+	AttestationObject RawAttestationObject `json:"attestationObject"`
 }
 
 func (response *CreateCredentialResponse) Validate(options *InitiateAuthenticationResponse) error {

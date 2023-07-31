@@ -60,7 +60,8 @@ func (a *App) Start() {
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 
-	authenticationController := webauthn.NewAuthenticationController()
+	authenticationService := webauthn.NewAuthenticationService()
+	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
 
 	// gin.SetMode(gin.ReleaseMode)
