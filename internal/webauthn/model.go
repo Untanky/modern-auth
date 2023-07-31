@@ -1,10 +1,8 @@
 package webauthn
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"fmt"
-	"math/big"
+	"log"
 
 	"encoding/binary"
 	jsonlib "encoding/json"
@@ -145,28 +143,6 @@ func decodeAuthData(data []byte) AuthData {
 	return authData
 }
 
-func decodeKey(data []byte) (PublicKey, error) {
-	raw := make(map[interface{}]interface{}, 0)
-	err := cbor.Unmarshal(data, &raw)
-	if err != nil {
-		return nil, err
-	}
-
-	alg := raw[uint64(3)].(int64)
-	switch alg {
-	case -7:
-		return &es256PublicKey{
-			key: &ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     big.NewInt(0).SetBytes(raw[int64(-2)].([]byte)),
-				Y:     big.NewInt(0).SetBytes(raw[int64(-3)].([]byte)),
-			},
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid algorithm")
-	}
-}
-
 func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.PublicKeyOptions.RelyingParty.Id))) {
 		return fmt.Errorf("invalid rpIdHash")
@@ -176,6 +152,7 @@ func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 		return err
 	}
 
+	log.Println(authData.CredentialPublicKey.Algorithm())
 	found := false
 	for _, param := range options.PublicKeyOptions.PublicKeyCredentialParams {
 		if param.Alg == authData.CredentialPublicKey.Algorithm() {
