@@ -16,9 +16,9 @@ type UserRepository interface {
 }
 
 type User struct {
-	ID     string `gorm:"primary_key"`
-	UserID []byte `gorm:"unique"`
-	Status string `gorm:"not null"`
+	ID     uuid.UUID
+	UserID []byte
+	Status string
 }
 
 type UserService struct {
@@ -50,13 +50,8 @@ func (s *UserService) ExistsUserId(ctx context.Context, userId []byte) (bool, er
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *User) error {
-	uuid, err := uuid.NewUUID()
-	if err != nil {
-		return err
-	}
-
-	user.ID = uuid.String()
-	user.UserID = utils.EncodeBase64(s.hashUserId(user.UserID))
+	user.ID = uuid.New()
+	user.UserID = s.hashUserId(user.UserID)
 	user.Status = "active"
 
 	return s.repo.Save(ctx, user)

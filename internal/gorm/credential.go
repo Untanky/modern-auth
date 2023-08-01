@@ -5,16 +5,17 @@ import (
 
 	domain "github.com/Untanky/modern-auth/internal/user"
 	"github.com/Untanky/modern-auth/internal/utils"
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
 
 type Credential struct {
 	gorm.Model
-	ID           string `gorm:"primaryKey"`
-	CredentialID string `gorm:"type:varchar;unique;index;not null"`
-	PublicKey    []byte `gorm:"not null"`
-	Status       string `gorm:"not null"`
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid"`
+	CredentialID []byte    `gorm:"type:bytea;unique;index;not null"`
+	PublicKey    []byte    `gorm:"type:bytea;not null"`
+	Status       string    `gorm:"not null"`
 }
 
 type GormCredentialRepo struct {
@@ -28,20 +29,15 @@ func NewGormCredentialRepo(db *gorm.DB) *GormCredentialRepo {
 			toGormModel: func(credential *domain.Credential) *Credential {
 				return &Credential{
 					ID:           credential.ID,
-					CredentialID: string(utils.EncodeBase64(credential.CredentialID)),
+					CredentialID: credential.CredentialID,
 					PublicKey:    credential.PublicKey,
 					Status:       credential.Status,
 				}
 			},
 			toModel: func(gormCredential *Credential) *domain.Credential {
-				credentialId, err := utils.DecodeBase64([]byte(gormCredential.CredentialID))
-				if err != nil {
-					panic(err)
-				}
-
 				return &domain.Credential{
 					ID:           gormCredential.ID,
-					CredentialID: credentialId,
+					CredentialID: gormCredential.CredentialID,
 					PublicKey:    gormCredential.PublicKey,
 					Status:       gormCredential.Status,
 				}

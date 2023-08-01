@@ -13,7 +13,7 @@ type CredentialRepository interface {
 }
 
 type Credential struct {
-	ID           string
+	ID           uuid.UUID
 	CredentialID []byte
 	Status       string
 	PublicKey    []byte
@@ -39,7 +39,7 @@ func (s *CredentialService) GetCredentialByCredentialID(ctx context.Context, id 
 }
 
 func (s *CredentialService) CreateCredential(ctx context.Context, credential *Credential) error {
-	credential.ID = uuid.New().String()
+	credential.ID = uuid.New()
 	credential.Status = "active"
 
 	return s.repo.Save(ctx, credential)

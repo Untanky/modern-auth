@@ -4,16 +4,16 @@ import (
 	"context"
 
 	domain "github.com/Untanky/modern-auth/internal/user"
-	"github.com/Untanky/modern-auth/internal/utils"
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
 
 type User struct {
 	gorm.Model
-	ID     string `gorm:"primaryKey"`
-	UserID string `gorm:"type:varchar;unique;index;not null"`
-	Status string `gorm:"not null"`
+	ID     uuid.UUID `gorm:"primaryKey;type:uuid"`
+	UserID []byte    `gorm:"type:bytea;unique;index;not null"`
+	Status string    `gorm:"not null"`
 }
 
 type GormUserRepo struct {
@@ -27,15 +27,14 @@ func NewGormUserRepo(db *gorm.DB) *GormUserRepo {
 			toGormModel: func(user *domain.User) *User {
 				return &User{
 					ID:     user.ID,
-					UserID: string(utils.EncodeBase64(user.UserID)),
+					UserID: user.UserID,
 					Status: user.Status,
 				}
 			},
 			toModel: func(gormUser *User) *domain.User {
-				userID, _ := utils.DecodeBase64([]byte(gormUser.UserID))
 				return &domain.User{
 					ID:     gormUser.ID,
-					UserID: userID,
+					UserID: gormUser.UserID,
 					Status: gormUser.Status,
 				}
 			},

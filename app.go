@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -149,7 +149,8 @@ func (a *App) handleRequestId(c *gin.Context) {
 
 func (a *App) connect() *gorm.DB {
 	logger.Debug("Database connection starting")
-	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	dsn := "host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Europe/Berlin"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
