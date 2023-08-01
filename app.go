@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
+	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
 	"github.com/Untanky/modern-auth/internal/oauth2"
+	"github.com/Untanky/modern-auth/internal/user"
 	"github.com/Untanky/modern-auth/internal/webauthn"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -41,10 +43,19 @@ func (a *App) Start() {
 	a.db = a.connect()
 	a.migrateEntities([]interface{}{
 		oauth2.ClientModel{},
+		gormLocal.User{},
 	})
 
 	logger.Debug("Initialize services starting")
-	clientRepo := core.NewGormRepository[string, *oauth2.ClientModel](a.db)
+	clientRepo := gormLocal.NewGormRepository[string, *oauth2.ClientModel, *oauth2.ClientModel](
+		a.db,
+		func(a *oauth2.ClientModel) *oauth2.ClientModel {
+			return a
+		},
+		func(a *oauth2.ClientModel) *oauth2.ClientModel {
+			return a
+		},
+	)
 	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
 	clientController := oauth2.NewClientController(clientService)
 
@@ -60,7 +71,9 @@ func (a *App) Start() {
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 
-	authenticationService := webauthn.NewAuthenticationService()
+	userRepo := gormLocal.NewGormUserRepo(a.db)
+	userService := user.NewUserService(userRepo)
+	authenticationService := webauthn.NewAuthenticationService(userService)
 	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
 

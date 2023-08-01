@@ -1,8 +1,11 @@
 package webauthn
 
 import (
+	"context"
 	"log"
 	"net/http"
+
+	"github.com/Untanky/modern-auth/internal/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,9 +59,8 @@ type CreateCredentialRequest struct {
 }
 
 type UserService interface {
-	IsUserIdAvailable(userId string) bool
-	GetUser(userId string) (interface{}, error)
-	CreateUser(user interface{}) error
+	GetUserByUserId(ctx context.Context, userId string) (*user.User, error)
+	CreateUser(ctx context.Context, user *user.User) error
 }
 
 type Credential interface{}
@@ -69,10 +71,13 @@ type CredentialService interface {
 }
 
 type AuthenticationService struct {
+	userService UserService
 }
 
-func NewAuthenticationService() *AuthenticationService {
-	return &AuthenticationService{}
+func NewAuthenticationService(userService UserService) *AuthenticationService {
+	return &AuthenticationService{
+		userService: userService,
+	}
 }
 
 func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) *InitiateAuthenticationResponse {
@@ -116,7 +121,14 @@ func (s *AuthenticationService) Register(response *CreateCredentialResponse) err
 
 	// TODO: assess trust of the authenticator
 
+	user := user.User{}
+
 	// TODO: create user
+	err = s.userService.CreateUser(context.TODO(), &user)
+	if err != nil {
+		return err
+	}
+
 	// TODO: link credential to user
 
 	return nil
@@ -147,7 +159,7 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 		return
 	}
 
-	response := NewAuthenticationService().InitiateAuthentication(&request)
+	response := c.service.InitiateAuthentication(&request)
 
 	ctx.JSON(200, response)
 }

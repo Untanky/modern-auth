@@ -1,9 +1,11 @@
-package core_test
+package gorm_test
 
 import (
 	"context"
 	"os"
 	"testing"
+
+	. "github.com/Untanky/modern-auth/internal/gorm"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"gorm.io/driver/sqlite"
@@ -43,7 +45,7 @@ func TestRepositoryFullFlow(t *testing.T) {
 
 				// Migrate the schema
 				db.AutoMigrate(&GormPerson{})
-				return core.NewGormRepository[string, GormPerson](db)
+				return NewGormRepository[string, GormPerson](db)
 			},
 			cleanUp: func(args args) {
 				os.Remove(args.dbFilename)
