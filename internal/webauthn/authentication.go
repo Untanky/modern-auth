@@ -121,7 +121,10 @@ func (s *AuthenticationService) Register(response *CreateCredentialResponse) err
 
 	// TODO: assess trust of the authenticator
 
-	user := user.User{}
+	user := user.User{
+		UserID: []byte("SADASDASDASDAS"),
+		Status: "active",
+	}
 
 	// TODO: create user
 	err = s.userService.CreateUser(context.TODO(), &user)

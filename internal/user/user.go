@@ -2,13 +2,17 @@ package user
 
 import (
 	"context"
+	"log"
 
 	"github.com/Untanky/modern-auth/internal/core"
+	"github.com/Untanky/modern-auth/internal/utils"
+	"github.com/google/uuid"
 )
 
 type UserRepository interface {
 	core.Repository[string, *User]
 	FindByUserId(ctx context.Context, userId string) (*User, error)
+	ExistsUserId(ctx context.Context, userId string) (bool, error)
 }
 
 type User struct {
@@ -32,10 +36,26 @@ func (s *UserService) GetUserById(ctx context.Context, id string) (*User, error)
 }
 
 func (s *UserService) GetUserByUserId(ctx context.Context, userId string) (*User, error) {
-	return s.repo.FindByUserId(ctx, userId)
+	hashedUserID := utils.HashShake256([]byte(userId))
+	return s.repo.FindByUserId(ctx, string(hashedUserID))
+}
+
+func (s *UserService) ExistsUserId(ctx context.Context, userId string) (bool, error) {
+	hashedUserID := utils.HashShake256([]byte(userId))
+	return s.repo.ExistsUserId(ctx, string(hashedUserID))
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *User) error {
+	log.Println("Creating user")
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		return err
+	}
+
+	user.ID = uuid.String()
+	user.UserID = utils.HashShake256(user.UserID)
+	user.Status = "active"
+
 	return s.repo.Save(ctx, user)
 }
 
