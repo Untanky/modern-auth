@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./authentication";
 
 export type AuthorizationState = 'userId' | 'createCredential' | 'getCredential' | 'success';
   
@@ -16,13 +17,13 @@ type authorizationStateType = {
   loading: boolean;
   error: Error | null;
   userId: string;
-  credentialOptions: CredentialCreationOptions;
+  credentialOptions: MyCredentialCreationOptions;
 } | {
   state: 'getCredential';
   loading: boolean;
   error: Error | null;
   userId: string;
-  credentialOptions: CredentialRequestOptions;
+  credentialOptions: MyCredentialRequestOptions;
 } | {
   state: 'success';
   loading: boolean;

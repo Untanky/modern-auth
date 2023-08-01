@@ -70,7 +70,6 @@ func (k *ec2PublicKey) UnmarshalCBOR(data []byte) error {
 		X     []byte `cbor:"-2,keyasint" json:"x"`
 		Y     []byte `cbor:"-3,keyasint" json:"y"`
 	}
-	log.Println("Hello World")
 	cborData := ec2Data{}
 	err := cbor.Unmarshal(data, &cborData)
 	if err != nil {

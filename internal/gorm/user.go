@@ -43,7 +43,7 @@ func NewGormUserRepo(db *gorm.DB) *GormUserRepo {
 	}
 }
 
-func (r *GormUserRepo) FindByUserId(ctx context.Context, userId string) (*domain.User, error) {
+func (r *GormUserRepo) FindByUserId(ctx context.Context, userId []byte) (*domain.User, error) {
 	var gormUser User
 	err := r.db.WithContext(ctx).Where("user_id = ?", userId).First(&gormUser).Error
 	if err != nil {
@@ -53,7 +53,7 @@ func (r *GormUserRepo) FindByUserId(ctx context.Context, userId string) (*domain
 	return r.toModel(&gormUser), nil
 }
 
-func (r *GormUserRepo) ExistsUserId(ctx context.Context, userId string) (bool, error) {
+func (r *GormUserRepo) ExistsUserId(ctx context.Context, userId []byte) (bool, error) {
 	var gormUser User
 	err := r.db.WithContext(ctx).Where("user_id = ?", userId).First(&gormUser).Error
 	if err != nil {

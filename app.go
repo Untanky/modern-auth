@@ -44,6 +44,7 @@ func (a *App) Start() {
 	a.migrateEntities([]interface{}{
 		oauth2.ClientModel{},
 		gormLocal.User{},
+		gormLocal.Credential{},
 	})
 
 	logger.Debug("Initialize services starting")
@@ -71,9 +72,12 @@ func (a *App) Start() {
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"))
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 
+	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.InitiateAuthenticationResponse]()
 	userRepo := gormLocal.NewGormUserRepo(a.db)
 	userService := user.NewUserService(userRepo)
-	authenticationService := webauthn.NewAuthenticationService(userService)
+	credentialRepo := gormLocal.NewGormCredentialRepo(a.db)
+	credentialService := user.NewCredentialService(credentialRepo)
+	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, userService, credentialService)
 	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
 

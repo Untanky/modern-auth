@@ -2,11 +2,11 @@ package webauthn
 
 import (
 	"fmt"
-	"log"
 
 	"encoding/binary"
 	jsonlib "encoding/json"
 
+	"github.com/Untanky/modern-auth/internal/user"
 	"github.com/Untanky/modern-auth/internal/utils"
 	"github.com/fxamacker/cbor/v2"
 )
@@ -152,7 +152,6 @@ func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 		return err
 	}
 
-	log.Println(authData.CredentialPublicKey.Algorithm())
 	found := false
 	for _, param := range options.PublicKeyOptions.PublicKeyCredentialParams {
 		if param.Alg == authData.CredentialPublicKey.Algorithm() {
@@ -172,21 +171,24 @@ type CreateCredentialResponse struct {
 	AttestationObject RawAttestationObject `json:"attestationObject"`
 }
 
-func (response *CreateCredentialResponse) Validate(options *InitiateAuthenticationResponse) error {
+func (response *CreateCredentialResponse) Validate(options *InitiateAuthenticationResponse) (*user.Credential, error) {
 	clientDataHash, err := response.ClientDataJSON.VerifyCreate(options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	attestationObject, err := response.AttestationObject.Decode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = attestationObject.Verify(options, clientDataHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &user.Credential{
+		CredentialID: attestationObject.AuthData.CredentialID,
+		PublicKey:    attestationObject.AuthData.RawCredentialPublicKey,
+	}, nil
 }

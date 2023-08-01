@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/user"
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +19,7 @@ type InitiateAuthenticationRequest struct {
 }
 
 type InitiateAuthenticationResponse struct {
+	OptionId         string                            `json:"optionId"`
 	PublicKeyOptions PublicKeyCredentialRequestOptions `json:"publicKey"`
 }
 
@@ -53,35 +56,41 @@ type AuthenticationSelection struct {
 }
 
 type CreateCredentialRequest struct {
+	OptionId string                   `json:"optionId"`
 	Id       string                   `json:"id"`
 	Type     string                   `json:"type"`
 	Response CreateCredentialResponse `json:"response"`
 }
 
 type UserService interface {
-	GetUserByUserId(ctx context.Context, userId string) (*user.User, error)
+	GetUserByUserID(ctx context.Context, userId []byte) (*user.User, error)
 	CreateUser(ctx context.Context, user *user.User) error
 }
 
-type Credential interface{}
-
 type CredentialService interface {
-	GetByCredentialId(id string) (Credential, error)
-	Create(credential Credential) error
+	GetCredentialByCredentialID(ctx context.Context, creadentialId []byte) (*user.Credential, error)
+	CreateCredential(ctx context.Context, credential *user.Credential) error
 }
 
 type AuthenticationService struct {
-	userService UserService
+	initAuthenticationStore core.KeyValueStore[string, InitiateAuthenticationResponse]
+	userService             UserService
+	credentialService       CredentialService
 }
 
-func NewAuthenticationService(userService UserService) *AuthenticationService {
+func NewAuthenticationService(initAuthenticationStore core.KeyValueStore[string, InitiateAuthenticationResponse], userService UserService, credentialService CredentialService) *AuthenticationService {
 	return &AuthenticationService{
-		userService: userService,
+		initAuthenticationStore: initAuthenticationStore,
+		userService:             userService,
+		credentialService:       credentialService,
 	}
 }
 
-func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) *InitiateAuthenticationResponse {
-	return &InitiateAuthenticationResponse{
+func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) (*InitiateAuthenticationResponse, error) {
+	id := uuid.New().String()
+
+	initResponse := &InitiateAuthenticationResponse{
+		OptionId: id,
 		PublicKeyOptions: PublicKeyCredentialRequestOptions{
 			// TODO: randomly generate challenge
 			Challenge: "1234567890",
@@ -109,30 +118,44 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 			Attestation: "indirect",
 		},
 	}
+
+	err := s.initAuthenticationStore.Set(id, initResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return initResponse, nil
 }
 
-func (s *AuthenticationService) Register(response *CreateCredentialResponse) error {
-	options := s.InitiateAuthentication(&InitiateAuthenticationRequest{})
+func (s *AuthenticationService) Register(ctx context.Context, id string, response *CreateCredentialResponse) error {
+	options, err := s.initAuthenticationStore.Get(id)
+	if err != nil {
+		return err
+	}
 
-	err := response.Validate(options)
+	credential, err := response.Validate(options)
 	if err != nil {
 		return err
 	}
 
 	// TODO: assess trust of the authenticator
 
-	user := user.User{
-		UserID: []byte("SADASDASDASDAS"),
+	userInstance := user.User{
+		UserID: options.PublicKeyOptions.User.Id,
 		Status: "active",
 	}
 
-	// TODO: create user
-	err = s.userService.CreateUser(context.TODO(), &user)
+	err = s.userService.CreateUser(ctx, &userInstance)
 	if err != nil {
 		return err
 	}
 
-	// TODO: link credential to user
+	credential.User = userInstance
+
+	err = s.credentialService.CreateCredential(ctx, credential)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -162,7 +185,14 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 		return
 	}
 
-	response := c.service.InitiateAuthentication(&request)
+	response, err := c.service.InitiateAuthentication(&request)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
 
 	ctx.JSON(200, response)
 }
@@ -178,7 +208,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.Register(&request.Response)
+	err = c.service.Register(ctx.Request.Context(), request.OptionId, &request.Response)
 	if err != nil {
 		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
