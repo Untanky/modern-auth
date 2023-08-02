@@ -2,7 +2,6 @@ package webauthn
 
 import (
 	"fmt"
-	"log"
 
 	"encoding/binary"
 	jsonlib "encoding/json"
@@ -51,7 +50,6 @@ func (json RawClientDataJSON) VerifyGet(options *InitiateAuthenticationResponse)
 	if data.Type != "webauthn.get" {
 		return nil, fmt.Errorf("invalid type")
 	}
-	log.Println(data.Challenge, string(utils.EncodeBase64([]byte(options.RequestOptions.Challenge))))
 	if data.Challenge != string(utils.EncodeBase64([]byte(options.RequestOptions.Challenge))) {
 		return nil, fmt.Errorf("invalid challenge")
 	}
@@ -93,14 +91,10 @@ func (attestation attestationObject) Verify(options *InitiateAuthenticationRespo
 
 func (attestation RawAttestationObject) Decode() (*attestationObject, error) {
 	var rawAttestationObject map[string]interface{}
-	log.Println(string(attestation))
 	err := cbor.Unmarshal(attestation, &rawAttestationObject)
 	if err != nil {
-		log.Println("Unmarshal", err)
 		return nil, err
 	}
-
-	log.Println(rawAttestationObject)
 
 	var attestationObject attestationObject
 	attestationObject.AuthData, err = decodeAuthData(rawAttestationObject["authData"].([]byte))
@@ -249,25 +243,21 @@ type RequestCredentialResponse struct {
 func (response *RequestCredentialResponse) Validate(options *InitiateAuthenticationResponse, credential *user.Credential) error {
 	clientDataHash, err := response.ClientDataJSON.VerifyGet(options)
 	if err != nil {
-		log.Println("VerifyGet", err)
 		return err
 	}
 
 	authData, err := decodeAuthData(response.AuthenticatorData)
 	if err != nil {
-		log.Println("Decode", err)
 		return err
 	}
 
 	err = authData.VerifyGet(options)
 	if err != nil {
-		log.Println("Verify", err)
 		return err
 	}
 
 	publicKey, err := decodeKey(credential.PublicKey)
 	if err != nil {
-		log.Println("decodeKey", err)
 		return err
 	}
 
@@ -275,7 +265,6 @@ func (response *RequestCredentialResponse) Validate(options *InitiateAuthenticat
 	ok := publicKey.Verify(response.Signature, verificationData)
 
 	if !ok {
-		log.Println("Signature", err)
 		return fmt.Errorf("invalid signature")
 	}
 

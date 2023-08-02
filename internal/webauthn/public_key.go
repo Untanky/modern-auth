@@ -51,6 +51,7 @@ func (k *publicKeyData) GetHashFunc() func() hash.Hash {
 	case -36:
 		return crypto.SHA512.New
 	default:
+		// TODO: proper error handling
 		log.Printf("ERROR: invalid algorithm: %v", k.Alg)
 		return nil
 	}

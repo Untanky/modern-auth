@@ -2,8 +2,6 @@ package webauthn
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -163,7 +161,6 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 		if err != nil {
 			return nil, err
 		}
-		log.Println(credentials)
 
 		allowCredentials := []PublicKeyCredentialDescriptor{}
 		for _, credential := range credentials {
@@ -235,8 +232,6 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 		return err
 	}
 
-	fmt.Println(request.Id, request.RawID)
-
 	credential, err := s.credentialService.GetCredentialByCredentialID(ctx, request.RawID)
 	if err != nil {
 		return err
@@ -280,7 +275,6 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 
 	response, err := c.service.InitiateAuthentication(&request)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
@@ -294,7 +288,6 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 	var request CreateCredentialRequest
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
@@ -303,7 +296,6 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 
 	err = c.service.Register(ctx.Request.Context(), request.OptionId, &request.Response)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
@@ -319,7 +311,6 @@ func (c *AuthenticationController) getCredential(ctx *gin.Context) {
 	var request RequestCredentialRequest
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
@@ -328,7 +319,6 @@ func (c *AuthenticationController) getCredential(ctx *gin.Context) {
 
 	err = c.service.Login(ctx.Request.Context(), &request)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
 		})
