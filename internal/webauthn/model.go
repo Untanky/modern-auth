@@ -76,7 +76,10 @@ func (attestation RawAttestationObject) Decode() (*attestationObject, error) {
 	}
 
 	var attestationObject attestationObject
-	attestationObject.AuthData = decodeAuthData(rawAttestationObject["authData"].([]byte))
+	attestationObject.AuthData, err = decodeAuthData(rawAttestationObject["authData"].([]byte))
+	if err != nil {
+		return nil, err
+	}
 	attestationObject.Format = rawAttestationObject["fmt"].(string)
 
 	attestationStatement := rawAttestationObject["attStmt"].(map[interface{}]interface{})
@@ -124,23 +127,26 @@ type AuthData struct {
 	CredentialPublicKey    PublicKey
 }
 
-func decodeAuthData(data []byte) AuthData {
+func decodeAuthData(data []byte) (AuthData, error) {
 	authData := AuthData{}
 	authData.Raw = data
 	authData.RPIDHash = data[:32]
 	authData.Flags = AuthFlags(data[32])
 	authData.SignCount = data[33:37]
+	if (len(data)) == 37 {
+		return authData, nil
+	}
+
 	authData.AAGUID = data[37:53]
 	credentialIDLength := binary.BigEndian.Uint16(data[53:55])
 	authData.CredentialID = data[55 : 55+credentialIDLength]
 	authData.RawCredentialPublicKey = data[55+credentialIDLength:]
 	publicKey, err := decodeKey(authData.RawCredentialPublicKey)
 	if err != nil {
-		panic(err)
+		return authData, err
 	}
 	authData.CredentialPublicKey = publicKey
-	// TODO: implement decodePublicKey
-	return authData
+	return authData, nil
 }
 
 func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
