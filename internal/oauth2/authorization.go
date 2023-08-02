@@ -48,8 +48,8 @@ func (e *AuthorizationError) BuildResponseURI() string {
 	return fmt.Sprintf("%s?error=%s&error_description=%s&state=%s&iss=%s", e.RedirectUri, e.Error, e.Description, e.State, e.Issuer)
 }
 
-type AuthorizationStore = core.KeyValueStore[string, AuthorizationRequest]
-type CodeStore = core.KeyValueStore[string, AuthorizationRequest]
+type AuthorizationStore = core.KeyValueStore[string, *AuthorizationRequest]
+type CodeStore = core.KeyValueStore[string, *AuthorizationRequest]
 
 type AuthorizationService struct {
 	authorizationStore AuthorizationStore

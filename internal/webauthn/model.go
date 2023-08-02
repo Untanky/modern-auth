@@ -19,7 +19,7 @@ type clientData struct {
 	Challenge string `json:"challenge"`
 }
 
-func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationResponse) (hash []byte, err error) {
+func (json RawClientDataJSON) VerifyCreate(options *CredentialCreationOptions) (hash []byte, err error) {
 	var data clientData
 	err = jsonlib.Unmarshal(json, &data)
 	if err != nil {
@@ -29,7 +29,7 @@ func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationRespon
 	if data.Type != "webauthn.create" {
 		return nil, fmt.Errorf("invalid type")
 	}
-	if data.Challenge != string(utils.EncodeBase64([]byte(options.CreationOptions.Challenge))) {
+	if data.Challenge != string(utils.EncodeBase64([]byte(options.Options.Challenge))) {
 		return nil, fmt.Errorf("invalid challenge")
 	}
 	// TODO: fix hardcoding
@@ -40,7 +40,7 @@ func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationRespon
 	return utils.HashSHA256(json), nil
 }
 
-func (json RawClientDataJSON) VerifyGet(options *InitiateAuthenticationResponse) (hash []byte, err error) {
+func (json RawClientDataJSON) VerifyGet(options *CredentialRequestOptions) (hash []byte, err error) {
 	var data clientData
 	err = jsonlib.Unmarshal(json, &data)
 	if err != nil {
@@ -50,7 +50,7 @@ func (json RawClientDataJSON) VerifyGet(options *InitiateAuthenticationResponse)
 	if data.Type != "webauthn.get" {
 		return nil, fmt.Errorf("invalid type")
 	}
-	if data.Challenge != string(utils.EncodeBase64([]byte(options.RequestOptions.Challenge))) {
+	if data.Challenge != string(utils.EncodeBase64([]byte(options.Options.Challenge))) {
 		return nil, fmt.Errorf("invalid challenge")
 	}
 	// TODO: fix hardcoding
@@ -73,7 +73,7 @@ type attestationObject struct {
 	Attestation AttestationStatement
 }
 
-func (attestation attestationObject) Verify(options *InitiateAuthenticationResponse, clientDataHash []byte) error {
+func (attestation attestationObject) Verify(options *CredentialCreationOptions, clientDataHash []byte) error {
 	if attestation.Format != "packed" {
 		return fmt.Errorf("invalid attestation format")
 	}
@@ -170,9 +170,9 @@ func decodeAuthData(data []byte) (AuthData, error) {
 	return authData, nil
 }
 
-func (authData AuthData) VerifyCreate(options *InitiateAuthenticationResponse) error {
+func (authData AuthData) VerifyCreate(options *CredentialCreationOptions) error {
 	// this assumes there is only one relying party
-	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.CreationOptions.RelyingParty.Id))) {
+	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.Options.RelyingParty.Id))) {
 		return fmt.Errorf("invalid rpIdHash")
 	}
 
@@ -181,7 +181,7 @@ func (authData AuthData) VerifyCreate(options *InitiateAuthenticationResponse) e
 	}
 
 	found := false
-	for _, param := range options.CreationOptions.PublicKeyCredentialParams {
+	for _, param := range options.Options.PublicKeyCredentialParams {
 		if param.Alg == authData.CredentialPublicKey.Algorithm() {
 			found = true
 			break
@@ -194,8 +194,8 @@ func (authData AuthData) VerifyCreate(options *InitiateAuthenticationResponse) e
 	return nil
 }
 
-func (authData AuthData) VerifyGet(options *InitiateAuthenticationResponse) error {
-	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.RequestOptions.RpID))) {
+func (authData AuthData) VerifyGet(options *CredentialRequestOptions) error {
+	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.Options.RpID))) {
 		return fmt.Errorf("invalid rpIdHash")
 	}
 
@@ -211,7 +211,7 @@ type CreateCredentialResponse struct {
 	AttestationObject RawAttestationObject `json:"attestationObject"`
 }
 
-func (response *CreateCredentialResponse) Validate(options *InitiateAuthenticationResponse) (*user.Credential, error) {
+func (response *CreateCredentialResponse) Validate(options *CredentialCreationOptions) (*user.Credential, error) {
 	clientDataHash, err := response.ClientDataJSON.VerifyCreate(options)
 	if err != nil {
 		return nil, err
@@ -240,7 +240,7 @@ type RequestCredentialResponse struct {
 	UserHandle        []byte            `json:"userHandle"`
 }
 
-func (response *RequestCredentialResponse) Validate(options *InitiateAuthenticationResponse, credential *user.Credential) error {
+func (response *RequestCredentialResponse) Validate(options *CredentialRequestOptions, credential *user.Credential) error {
 	clientDataHash, err := response.ClientDataJSON.VerifyGet(options)
 	if err != nil {
 		return err

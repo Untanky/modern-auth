@@ -2,6 +2,7 @@ package webauthn
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -14,100 +15,17 @@ import (
 
 const rpId = "localhost" // TODO: make customizable
 
-type InitiateAuthenticationRequest struct {
-	UserId string `json:"userId"`
-}
-
-type InitiateAuthenticationResponse struct {
-	AuthenticationId string                             `json:"authenticationId"`
-	Type             string                             `json:"type"`
-	CreationOptions  PublicKeyCredentialCreationOptions `json:"publicKey"`
-	RequestOptions   PublicKeyCredentialRequestOptions  `json:"publicKeyFoo"`
-}
-
-type PublicKeyCredentialCreationOptions struct {
-	Challenge                 []byte                          `json:"challenge"`
-	RelyingParty              PublicKeyCredentialRpEntity     `json:"rp"`
-	User                      PublicKeyCredentialUserEntity   `json:"user"`
-	PublicKeyCredentialParams []PublicKeyCredentialParameters `json:"pubKeyCredParams"`
-	AuthenticationSelection   AuthenticationSelection         `json:"authenticatorSelection"`
-	Timeout                   uint64                          `json:"timeout"`
-	Attestation               string                          `json:"attestation"`
-	AttestationFormats        []string                        `json:"attestationFormats"`
-}
-
-type PublicKeyCredentialRequestOptions struct {
-	Challenge          []byte                          `json:"challenge"`
-	RpID               string                          `json:"rpId"`
-	Timeout            uint64                          `json:"timeout"`
-	UserVerification   string                          `json:"userVerification"`
-	Attestation        string                          `json:"attestation"`
-	AttestationFormats []string                        `json:"attestationFormats"`
-	AllowCredentials   []PublicKeyCredentialDescriptor `json:"allowCredentials"`
-}
-
-type PublicKeyCredentialDescriptor struct {
-	Type       string   `json:"type"`
-	ID         []byte   `json:"id"`
-	Transports []string `json:"transports"`
-}
-
-type PublicKeyCredentialRpEntity struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type PublicKeyCredentialUserEntity struct {
-	Id          []byte `json:"id"`
-	Name        string `json:"name"`
-	DisplayName string `json:"displayName"`
-}
-
-type PublicKeyCredentialParameters struct {
-	Type string `json:"type"`
-	Alg  int    `json:"alg"`
-}
-
-type AuthenticationSelection struct {
-	AuthenticatorAttachment string `json:"authenticatorAttachment"`
-	RequireResidentKey      bool   `json:"requireResidentKey"`
-	UserVerification        string `json:"userVerification"`
-}
-
-type CreateCredentialRequest struct {
-	AuthenticationID string                   `json:"authenticationId"`
-	Id               string                   `json:"id"`
-	RawID            []byte                   `json:"rawId"`
-	Type             string                   `json:"type"`
-	Response         CreateCredentialResponse `json:"response"`
-}
-
-type RequestCredentialRequest struct {
-	AuthenticationID string                    `json:"authenticationId"`
-	Id               string                    `json:"id"`
-	RawID            []byte                    `json:"rawId"`
-	Type             string                    `json:"type"`
-	Response         RequestCredentialResponse `json:"response"`
-}
-
-type UserService interface {
-	GetUserByUserID(ctx context.Context, userId []byte) (*user.User, error)
-	CreateUser(ctx context.Context, user *user.User) error
-}
-
-type CredentialService interface {
-	GetCredentialByCredentialID(ctx context.Context, creadentialId []byte) (*user.Credential, error)
-	GetCredentialsByUserID(ctx context.Context, userId uuid.UUID) ([]*user.Credential, error)
-	CreateCredential(ctx context.Context, credential *user.Credential) error
-}
-
 type AuthenticationService struct {
-	initAuthenticationStore core.KeyValueStore[string, InitiateAuthenticationResponse]
-	userService             UserService
-	credentialService       CredentialService
+	initAuthenticationStore core.KeyValueStore[string, CredentialOptions]
+	userService             *user.UserService
+	credentialService       *user.CredentialService
 }
 
-func NewAuthenticationService(initAuthenticationStore core.KeyValueStore[string, InitiateAuthenticationResponse], userService UserService, credentialService CredentialService) *AuthenticationService {
+func NewAuthenticationService(
+	initAuthenticationStore core.KeyValueStore[string, CredentialOptions],
+	userService *user.UserService,
+	credentialService *user.CredentialService,
+) *AuthenticationService {
 	return &AuthenticationService{
 		initAuthenticationStore: initAuthenticationStore,
 		userService:             userService,
@@ -115,7 +33,7 @@ func NewAuthenticationService(initAuthenticationStore core.KeyValueStore[string,
 	}
 }
 
-func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) (*InitiateAuthenticationResponse, error) {
+func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) (CredentialOptions, error) {
 	id := uuid.New().String()
 
 	user, err := s.userService.GetUserByUserID(context.TODO(), []byte(request.UserId))
@@ -123,13 +41,13 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 		return nil, err
 	}
 
-	var initResponse *InitiateAuthenticationResponse
+	var initResponse CredentialOptions
 
 	if user == nil {
-		initResponse = &InitiateAuthenticationResponse{
+		initResponse = &CredentialCreationOptions{
 			AuthenticationId: id,
 			Type:             "create",
-			CreationOptions: PublicKeyCredentialCreationOptions{
+			Options: PublicKeyCredentialCreationOptions{
 				// TODO: randomly generate challenge
 				Challenge: []byte("1234567890"),
 				RelyingParty: PublicKeyCredentialRpEntity{
@@ -170,10 +88,10 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 			})
 		}
 
-		initResponse = &InitiateAuthenticationResponse{
+		initResponse = &CredentialRequestOptions{
 			AuthenticationId: id,
 			Type:             "get",
-			RequestOptions: PublicKeyCredentialRequestOptions{
+			Options: PublicKeyCredentialRequestOptions{
 				// TODO: randomly generate challenge
 				Challenge:        []byte("1234567890"),
 				RpID:             rpId,
@@ -199,7 +117,12 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, respons
 		return err
 	}
 
-	credential, err := response.Validate(options)
+	creationOptions, ok := options.(*CredentialCreationOptions)
+	if !ok {
+		return fmt.Errorf("invalid options")
+	}
+
+	credential, err := response.Validate(creationOptions)
 	if err != nil {
 		return err
 	}
@@ -207,7 +130,7 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, respons
 	// TODO: assess trust of the authenticator
 
 	userInstance := &user.User{
-		UserID: options.CreationOptions.User.Id,
+		UserID: creationOptions.Options.User.Id,
 		Status: "active",
 	}
 
@@ -237,7 +160,12 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 		return err
 	}
 
-	err = request.Response.Validate(options, credential)
+	requestOptions, ok := options.(*CredentialRequestOptions)
+	if !ok {
+		return fmt.Errorf("invalid options")
+	}
+
+	err = request.Response.Validate(requestOptions, credential)
 	if err != nil {
 		return err
 	}
