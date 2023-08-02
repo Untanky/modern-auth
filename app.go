@@ -4,7 +4,10 @@ import (
 	"log"
 
 	"github.com/Untanky/modern-auth/internal/core"
+	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
 	"github.com/Untanky/modern-auth/internal/oauth2"
+	"github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/webauthn"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,7 +20,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.uber.org/zap"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
 )
@@ -78,6 +81,8 @@ func (a *App) Start() {
 	a.db = a.connect()
 	a.migrateEntities([]interface{}{
 		oauth2.ClientModel{},
+		gormLocal.User{},
+		gormLocal.Credential{},
 	})
 
 	meter := otel.GetMeterProvider().Meter("github.com/Untanky/modern-auth")
@@ -88,7 +93,15 @@ func (a *App) Start() {
 	}
 
 	logger.Debug("Initialize services starting")
-	clientRepo := core.NewGormRepository[string, *oauth2.ClientModel](a.db)
+	clientRepo := gormLocal.NewGormRepository[string, *oauth2.ClientModel, *oauth2.ClientModel](
+		a.db,
+		func(a *oauth2.ClientModel) *oauth2.ClientModel {
+			return a
+		},
+		func(a *oauth2.ClientModel) *oauth2.ClientModel {
+			return a
+		},
+	)
 	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
 	clientController := oauth2.NewClientController(clientService)
 
@@ -123,6 +136,14 @@ func (a *App) Start() {
 	}
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"), tokenRequest)
 	tokenController := oauth2.NewTokenController(oauthTokenService)
+
+	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.InitiateAuthenticationResponse]()
+	userRepo := gormLocal.NewGormUserRepo(a.db)
+	userService := user.NewUserService(userRepo)
+	credentialRepo := gormLocal.NewGormCredentialRepo(a.db)
+	credentialService := user.NewCredentialService(credentialRepo)
+	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, userService, credentialService)
+	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
 
 	// gin.SetMode(gin.ReleaseMode)
@@ -142,11 +163,12 @@ func (a *App) Start() {
 	oauth2Router := api.Group("/oauth2")
 	authorizationController.RegisterRoutes(oauth2Router)
 	tokenController.RegisterRoutes(oauth2Router)
+	authenticationController.RegisterRoutes(api.Group("/webauthn"))
 	logger.Info("Router setup successful")
 
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
-	r.Run(":3000")
+	r.Run(":8080")
 }
 
 func (a *App) handleRequestId(c *gin.Context) {
@@ -163,7 +185,8 @@ func (a *App) handleRequestId(c *gin.Context) {
 
 func (a *App) connect() *gorm.DB {
 	logger.Debug("Database connection starting")
-	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	dsn := "host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Europe/Berlin"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

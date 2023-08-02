@@ -2,8 +2,6 @@ package core
 
 import (
 	"context"
-
-	"gorm.io/gorm"
 )
 
 // A repository persists entities of a given type.
@@ -14,57 +12,4 @@ type Repository[IdType comparable, Type interface{}] interface {
 	Save(ctx context.Context, entity Type) error
 	Update(ctx context.Context, entity Type) error
 	DeleteById(ctx context.Context, id IdType) error
-}
-
-type TenancyRepository[IdType comparable, Type interface{}] interface {
-	Repository[IdType, Type]
-	FindAllByTenantId(ctx context.Context, tenantId string) ([]Type, error)
-}
-
-type GormTenancyRepository[IdType comparable, Type interface{}] struct {
-	db *gorm.DB
-}
-
-func NewGormRepository[IdType comparable, Type interface{}](db *gorm.DB) *GormTenancyRepository[IdType, Type] {
-	return &GormTenancyRepository[IdType, Type]{
-		db: db,
-	}
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) FindAll(ctx context.Context) ([]Type, error) {
-	var entities []Type
-	err := repo.db.WithContext(ctx).Find(&entities).Error
-	return entities, err
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) FindById(ctx context.Context, id IdType) (Type, error) {
-	var entity Type
-	err := repo.db.WithContext(ctx).First(&entity, "id = ?", id).Error
-	return entity, err
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) FindAllByTenantId(ctx context.Context, tenantId string) ([]Type, error) {
-	var entities []Type
-	err := repo.db.WithContext(ctx).Where("tenant_id = ?", tenantId).Find(&entities).Error
-	return entities, err
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) Save(ctx context.Context, entity Type) error {
-	err := repo.db.WithContext(ctx).Create(&entity).Error
-	return err
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) Update(ctx context.Context, entity Type) error {
-	err := repo.db.WithContext(ctx).Save(&entity).Error
-	return err
-}
-
-func (repo *GormTenancyRepository[IdType, Type]) DeleteById(ctx context.Context, id IdType) error {
-	db := repo.db.WithContext(ctx)
-	entity, err := repo.FindById(ctx, id)
-	if err != nil {
-		return err
-	}
-	err = db.Delete(&entity).Error
-	return err
 }
