@@ -1,7 +1,8 @@
-export type MyCredentialCreationOptions = CredentialCreationOptions & { optionId: string };
-export type MyCredentialRequestOptions = CredentialRequestOptions & { optionId: string };
+export type MyCredentialCreationOptions = CredentialCreationOptions & { optionId: string; type: 'create' };
+export type MyCredentialRequestOptions = CredentialRequestOptions & { optionId: string; type: 'get' };
+export type CredentialOptions = MyCredentialCreationOptions | MyCredentialRequestOptions;
 
-export const initiateAuthentication = async (userId: string): Promise<MyCredentialCreationOptions> => {
+export const initiateAuthentication = async (userId: string): Promise<CredentialOptions> => {
   return fetch('/v1/webauthn/authentication/initiate', {
     method: 'POST',
     headers: {

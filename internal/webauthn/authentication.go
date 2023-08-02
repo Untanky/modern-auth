@@ -21,6 +21,7 @@ type InitiateAuthenticationRequest struct {
 
 type InitiateAuthenticationResponse struct {
 	OptionId        string                             `json:"optionId"`
+	Type            string                             `json:"type"`
 	CreationOptions PublicKeyCredentialCreationOptions `json:"publicKey"`
 	RequestOptions  PublicKeyCredentialRequestOptions  `json:"publicKeyFoo"`
 }
@@ -119,6 +120,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 	if user == nil {
 		initResponse = &InitiateAuthenticationResponse{
 			OptionId: id,
+			Type:     "create",
 			CreationOptions: PublicKeyCredentialCreationOptions{
 				// TODO: randomly generate challenge
 				Challenge: []byte("1234567890"),
@@ -163,6 +165,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 
 		initResponse = &InitiateAuthenticationResponse{
 			OptionId: id,
+			Type:     "get",
 			RequestOptions: PublicKeyCredentialRequestOptions{
 				// TODO: randomly generate challenge
 				Challenge:        []byte("1234567890"),

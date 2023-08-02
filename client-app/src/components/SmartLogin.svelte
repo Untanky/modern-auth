@@ -12,7 +12,11 @@
 
     initiateAuthentication(userId)
       .then((ops) => {
-        state.update(oldState => ({ ...oldState, state: 'createCredential', userId, credentialOptions: ops, loading: false }));
+        if (ops.type === 'create') {
+          state.update(oldState => ({ ...oldState, state: 'createCredential', userId, credentialOptions: ops, loading: false }));
+        } else {
+          state.update(oldState => ({ ...oldState, state: 'getCredential', userId, credentialOptions: ops, loading: false }));
+        }
       })
       .catch((err) => {
         state.update(oldState => ({ ...oldState, error: err, loading: false }));
