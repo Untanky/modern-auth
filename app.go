@@ -1,9 +1,6 @@
 package main
 
 import (
-	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -95,12 +92,11 @@ func (a *App) Start() {
 	authorizationController.RegisterRoutes(oauth2Router)
 	tokenController.RegisterRoutes(oauth2Router)
 	authenticationController.RegisterRoutes(api.Group("/webauthn"))
-	r.NoRoute(proxy)
 	logger.Info("Router setup successful")
 
 	logger.Info("Application initialization successful")
 	logger.Info("Application starting to listen")
-	r.Run(":3000")
+	r.Run(":8080")
 }
 
 func (a *App) loggerMiddleware(c *gin.Context) {
@@ -167,24 +163,6 @@ func (a *App) migrateEntities(entities []interface{}) {
 		}
 		logger.Info("Entity migration successful")
 	}
-}
-
-// use a proxy locally
-func proxy(c *gin.Context) {
-	remote, err := url.Parse("http://localhost:5173")
-	if err != nil {
-		panic(err)
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Director = func(req *http.Request) {
-		req.Header = c.Request.Header
-		req.Host = remote.Host
-		req.URL.Scheme = remote.Scheme
-		req.URL.Host = remote.Host
-	}
-
-	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 func (a *App) Stop() {

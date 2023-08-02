@@ -1,0 +1,4 @@
+http://localhost
+
+reverse_proxy /v1/* host.docker.internal:8080
+reverse_proxy * host.docker.internal:5173
