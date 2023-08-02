@@ -2,6 +2,7 @@ package webauthn
 
 import (
 	"fmt"
+	"log"
 
 	"encoding/binary"
 	jsonlib "encoding/json"
@@ -40,6 +41,28 @@ func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationRespon
 	return utils.HashSHA256(json), nil
 }
 
+func (json RawClientDataJSON) VerifyGet(options *InitiateAuthenticationResponse) (hash []byte, err error) {
+	var data clientData
+	err = jsonlib.Unmarshal(json, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.Type != "webauthn.get" {
+		return nil, fmt.Errorf("invalid type")
+	}
+	log.Println(data.Challenge, string(utils.EncodeBase64([]byte(options.RequestOptions.Challenge))))
+	if data.Challenge != string(utils.EncodeBase64([]byte(options.RequestOptions.Challenge))) {
+		return nil, fmt.Errorf("invalid challenge")
+	}
+	// TODO: fix hardcoding
+	if data.Origin != "http://localhost:3000" {
+		return nil, fmt.Errorf("invalid origin")
+	}
+
+	return utils.HashSHA256(json), nil
+}
+
 type RawAttestationObject []byte
 
 type AttestationStatement interface {
@@ -57,7 +80,7 @@ func (attestation attestationObject) Verify(options *InitiateAuthenticationRespo
 		return fmt.Errorf("invalid attestation format")
 	}
 
-	if err := attestation.AuthData.Verify(options); err != nil {
+	if err := attestation.AuthData.VerifyCreate(options); err != nil {
 		return err
 	}
 
@@ -70,10 +93,14 @@ func (attestation attestationObject) Verify(options *InitiateAuthenticationRespo
 
 func (attestation RawAttestationObject) Decode() (*attestationObject, error) {
 	var rawAttestationObject map[string]interface{}
+	log.Println(string(attestation))
 	err := cbor.Unmarshal(attestation, &rawAttestationObject)
 	if err != nil {
+		log.Println("Unmarshal", err)
 		return nil, err
 	}
+
+	log.Println(rawAttestationObject)
 
 	var attestationObject attestationObject
 	attestationObject.AuthData, err = decodeAuthData(rawAttestationObject["authData"].([]byte))
@@ -149,7 +176,8 @@ func decodeAuthData(data []byte) (AuthData, error) {
 	return authData, nil
 }
 
-func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
+func (authData AuthData) VerifyCreate(options *InitiateAuthenticationResponse) error {
+	// this assumes there is only one relying party
 	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.CreationOptions.RelyingParty.Id))) {
 		return fmt.Errorf("invalid rpIdHash")
 	}
@@ -167,6 +195,18 @@ func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 	}
 	if !found {
 		return fmt.Errorf("invalid algorithm")
+	}
+
+	return nil
+}
+
+func (authData AuthData) VerifyGet(options *InitiateAuthenticationResponse) error {
+	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.RequestOptions.RpID))) {
+		return fmt.Errorf("invalid rpIdHash")
+	}
+
+	if err := authData.Flags.Verify(); err != nil {
+		return err
 	}
 
 	return nil
@@ -197,4 +237,47 @@ func (response *CreateCredentialResponse) Validate(options *InitiateAuthenticati
 		CredentialID: attestationObject.AuthData.CredentialID,
 		PublicKey:    attestationObject.AuthData.RawCredentialPublicKey,
 	}, nil
+}
+
+type RequestCredentialResponse struct {
+	ClientDataJSON    RawClientDataJSON `json:"clientDataJSON"`
+	AuthenticatorData []byte            `json:"authenticatorData"`
+	Signature         []byte            `json:"signature"`
+	UserHandle        []byte            `json:"userHandle"`
+}
+
+func (response *RequestCredentialResponse) Validate(options *InitiateAuthenticationResponse, credential *user.Credential) error {
+	clientDataHash, err := response.ClientDataJSON.VerifyGet(options)
+	if err != nil {
+		log.Println("VerifyGet", err)
+		return err
+	}
+
+	authData, err := decodeAuthData(response.AuthenticatorData)
+	if err != nil {
+		log.Println("Decode", err)
+		return err
+	}
+
+	err = authData.VerifyGet(options)
+	if err != nil {
+		log.Println("Verify", err)
+		return err
+	}
+
+	publicKey, err := decodeKey(credential.PublicKey)
+	if err != nil {
+		log.Println("decodeKey", err)
+		return err
+	}
+
+	verificationData := append(authData.Raw, clientDataHash...)
+	ok := publicKey.Verify(response.Signature, verificationData)
+
+	if !ok {
+		log.Println("Signature", err)
+		return fmt.Errorf("invalid signature")
+	}
+
+	return nil
 }

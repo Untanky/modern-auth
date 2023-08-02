@@ -4,7 +4,6 @@ import (
 	"context"
 
 	domain "github.com/Untanky/modern-auth/internal/user"
-	"github.com/Untanky/modern-auth/internal/utils"
 	"github.com/google/uuid"
 
 	"gorm.io/gorm"
@@ -54,7 +53,6 @@ func NewGormCredentialRepo(db *gorm.DB) *GormCredentialRepo {
 
 func (r *GormCredentialRepo) FindByCredentialId(ctx context.Context, credentialId []byte) (*domain.Credential, error) {
 	var gormCredential Credential
-	credentialId = utils.EncodeBase64(credentialId)
 	err := r.db.WithContext(ctx).Where("credential_id = ?", credentialId).First(&gormCredential).Error
 	if err != nil {
 		return nil, err

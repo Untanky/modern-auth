@@ -2,6 +2,7 @@ package webauthn
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -78,8 +79,17 @@ type AuthenticationSelection struct {
 type CreateCredentialRequest struct {
 	OptionId string                   `json:"optionId"`
 	Id       string                   `json:"id"`
+	RawID    []byte                   `json:"rawId"`
 	Type     string                   `json:"type"`
 	Response CreateCredentialResponse `json:"response"`
+}
+
+type RequestCredentialRequest struct {
+	OptionId string                    `json:"optionId"`
+	Id       string                    `json:"id"`
+	RawID    []byte                    `json:"rawId"`
+	Type     string                    `json:"type"`
+	Response RequestCredentialResponse `json:"response"`
 }
 
 type UserService interface {
@@ -219,6 +229,29 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, respons
 	return nil
 }
 
+func (s *AuthenticationService) Login(ctx context.Context, request *RequestCredentialRequest) error {
+	options, err := s.initAuthenticationStore.Get(request.OptionId)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(request.Id, request.RawID)
+
+	credential, err := s.credentialService.GetCredentialByCredentialID(ctx, request.RawID)
+	if err != nil {
+		return err
+	}
+
+	err = request.Response.Validate(options, credential)
+	if err != nil {
+		return err
+	}
+
+	// TODO: assess trust of the authenticator
+
+	return nil
+}
+
 type AuthenticationController struct {
 	service *AuthenticationService
 }
@@ -232,6 +265,7 @@ func NewAuthenticationController(service *AuthenticationService) *Authentication
 func (c *AuthenticationController) RegisterRoutes(router gin.IRoutes) {
 	router.POST("/authentication/initiate", c.initiateAuthentication)
 	router.POST("/authentication/create", c.createCredential)
+	router.POST("/authentication/validate", c.getCredential)
 }
 
 func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
@@ -268,6 +302,31 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 	}
 
 	err = c.service.Register(ctx.Request.Context(), request.OptionId, &request.Response)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
+
+	ctx.JSON(200, gin.H{
+		"success": true,
+	})
+}
+
+func (c *AuthenticationController) getCredential(ctx *gin.Context) {
+	var request RequestCredentialRequest
+	err := ctx.BindJSON(&request)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid_request",
+		})
+		return
+	}
+
+	err = c.service.Login(ctx.Request.Context(), &request)
 	if err != nil {
 		log.Printf("ERROR: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{

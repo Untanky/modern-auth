@@ -55,17 +55,19 @@ const postNewCredential = (optionId: string, credential: PublicKeyCredential): P
 
 export const signIn = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
   const credential = await getCredential(credentialOptions);
+  console.log(credential);
   validateCredential(credentialOptions.optionId, credential);
 };
 
 const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCredential> => {
   return navigator.credentials.get({
     publicKey: {
-      ...credOps.publicKey,
-      challenge: base64ToBuffer(credOps.publicKey.challenge as unknown as string),
-      allowCredentials: credOps.publicKey.allowCredentials?.map((cred) => ({
+      ...credOps.publicKeyFoo,
+      challenge: base64ToBuffer(credOps.publicKeyFoo.challenge as unknown as string),
+      allowCredentials: credOps.publicKeyFoo.allowCredentials?.map((cred) => ({
         ...cred,
         id: base64ToBuffer(cred.id as unknown as string),
+        transports: [],
       })),
     },
   }) as Promise<PublicKeyCredential>;
@@ -81,6 +83,7 @@ const validateCredential = (optionId: string, credential: PublicKeyCredential): 
     },
     body: JSON.stringify({
       id: credential.id,
+      rawId: bufferToBase64(credential.rawId),
       optionId,
       type: credential.type,
       response: {
