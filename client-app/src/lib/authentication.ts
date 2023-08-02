@@ -11,9 +11,8 @@ export const initiateAuthentication = async (userId: string): Promise<MyCredenti
   }).then((response) => response.json());
 };
 
-const utf8Decoder = new TextDecoder('utf-8');
-const createUint8ArrayFrom = (value: string): Uint8Array => Uint8Array.from(value, (c) => c.charCodeAt(0));
 const bufferToBase64 = (buffer: ArrayBuffer): string => btoa(String.fromCharCode(...new Uint8Array(buffer)));
+const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 
 export const signUp = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
@@ -24,10 +23,10 @@ const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKey
   return navigator.credentials.create({
     publicKey: {
       ...credOps.publicKey,
-      challenge: createUint8ArrayFrom(credOps.publicKey.challenge as unknown as string),
+      challenge: base64ToBuffer(credOps.publicKey.challenge as unknown as string),
       user: {
         ...credOps.publicKey.user,
-        id: createUint8ArrayFrom(credOps.publicKey.user.id as unknown as string),
+        id: base64ToBuffer(credOps.publicKey.user.id as unknown as string),
       },
     },
   }) as Promise<PublicKeyCredential>;
@@ -62,10 +61,10 @@ const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCred
   return navigator.credentials.get({
     publicKey: {
       ...credOps.publicKey,
-      challenge: createUint8ArrayFrom(credOps.publicKey.challenge as unknown as string),
+      challenge: base64ToBuffer(credOps.publicKey.challenge as unknown as string),
       allowCredentials: credOps.publicKey.allowCredentials?.map((cred) => ({
         ...cred,
-        id: createUint8ArrayFrom(cred.id as unknown as string),
+        id: base64ToBuffer(cred.id as unknown as string),
       })),
     },
   }) as Promise<PublicKeyCredential>;
@@ -84,10 +83,10 @@ const validateCredential = (optionId: string, credential: PublicKeyCredential): 
       optionId,
       type: credential.type,
       response: {
-        clientDataJSON: utf8Decoder.decode(clientDataJSON),
-        authenticatorData: utf8Decoder.decode(authenticatorData),
-        signature: utf8Decoder.decode(signature),
-        userHandle: utf8Decoder.decode(userHandle),
+        clientDataJSON: bufferToBase64(clientDataJSON),
+        authenticatorData: bufferToBase64(authenticatorData),
+        signature: bufferToBase64(signature),
+        userHandle: bufferToBase64(userHandle),
       }
     }),
   })

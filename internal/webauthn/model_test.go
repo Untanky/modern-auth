@@ -20,9 +20,9 @@ func TestRawClientDataJSONVerifyCreate(t *testing.T) {
 			name: "Succeeds",
 			json: webauthn.RawClientDataJSON(`{"type":"webauthn.create","challenge":"1234567890","origin":"localhost"}`),
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
 					Challenge: "1234567890",
-					RelyingParty: webauthn.RelyingPartyOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},
@@ -33,9 +33,9 @@ func TestRawClientDataJSONVerifyCreate(t *testing.T) {
 			name: "Fails when type is not webauthn.create",
 			json: webauthn.RawClientDataJSON(`{"type":"webauthn.get","challenge":"1234567890","origin":"localhost"}`),
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
 					Challenge: "1234567890",
-					RelyingParty: webauthn.RelyingPartyOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},
@@ -46,9 +46,9 @@ func TestRawClientDataJSONVerifyCreate(t *testing.T) {
 			name: "Fails when type is not challenge does not match",
 			json: webauthn.RawClientDataJSON(`{"type":"webauthn.create","challenge":"abc","origin":"localhost"}`),
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
 					Challenge: "1234567890",
-					RelyingParty: webauthn.RelyingPartyOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},
@@ -59,9 +59,9 @@ func TestRawClientDataJSONVerifyCreate(t *testing.T) {
 			name: "Fails when type is not origin does not match",
 			json: webauthn.RawClientDataJSON(`{"type":"webauthn.create","challenge":"1234567890","origin":"modern-auth.com"}`),
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
 					Challenge: "1234567890",
-					RelyingParty: webauthn.RelyingPartyOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},
@@ -99,8 +99,8 @@ func TestAuthDataVerify(t *testing.T) {
 				RPIDHash: utils.HashSHA256([]byte("localhost")),
 			},
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
-					RelyingParty: webauthn.RelyingPartyOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},
@@ -113,8 +113,8 @@ func TestAuthDataVerify(t *testing.T) {
 				RPIDHash: []byte("1234567890"),
 			},
 			options: &webauthn.InitiateAuthenticationResponse{
-				PublicKeyOptions: webauthn.PublicKeyCredentialRequestOptions{
-					RelyingParty: webauthn.RelyingPartyOptions{
+				PublicKeyOptions: webauthn.PublicKeyCredentialCreationOptions{
+					RelyingParty: webauthn.PublicKeyCredentialRpEntity{
 						Id: "localhost",
 					},
 				},

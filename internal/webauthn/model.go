@@ -29,7 +29,7 @@ func (json RawClientDataJSON) VerifyCreate(options *InitiateAuthenticationRespon
 	if data.Type != "webauthn.create" {
 		return nil, fmt.Errorf("invalid type")
 	}
-	if data.Challenge != string(utils.EncodeBase64([]byte(options.PublicKeyOptions.Challenge))) {
+	if data.Challenge != string(utils.EncodeBase64([]byte(options.CreationOptions.Challenge))) {
 		return nil, fmt.Errorf("invalid challenge")
 	}
 	// TODO: fix hardcoding
@@ -144,7 +144,7 @@ func decodeAuthData(data []byte) AuthData {
 }
 
 func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
-	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.PublicKeyOptions.RelyingParty.Id))) {
+	if string(authData.RPIDHash) != string(utils.HashSHA256([]byte(options.CreationOptions.RelyingParty.Id))) {
 		return fmt.Errorf("invalid rpIdHash")
 	}
 
@@ -153,7 +153,7 @@ func (authData AuthData) Verify(options *InitiateAuthenticationResponse) error {
 	}
 
 	found := false
-	for _, param := range options.PublicKeyOptions.PublicKeyCredentialParams {
+	for _, param := range options.CreationOptions.PublicKeyCredentialParams {
 		if param.Alg == authData.CredentialPublicKey.Algorithm() {
 			found = true
 			break

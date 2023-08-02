@@ -10,6 +10,7 @@ import (
 type CredentialRepository interface {
 	core.Repository[string, *Credential]
 	FindByCredentialId(ctx context.Context, credentialId []byte) (*Credential, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) ([]*Credential, error)
 }
 
 type Credential struct {
@@ -17,7 +18,7 @@ type Credential struct {
 	CredentialID []byte
 	Status       string
 	PublicKey    []byte
-	User         User
+	User         *User
 }
 
 type CredentialService struct {
@@ -36,6 +37,10 @@ func (s *CredentialService) GetCredentialByID(ctx context.Context, id string) (*
 
 func (s *CredentialService) GetCredentialByCredentialID(ctx context.Context, id []byte) (*Credential, error) {
 	return s.repo.FindByCredentialId(ctx, id)
+}
+
+func (s *CredentialService) GetCredentialsByUserID(ctx context.Context, userId uuid.UUID) ([]*Credential, error) {
+	return s.repo.FindByUserID(ctx, userId)
 }
 
 func (s *CredentialService) CreateCredential(ctx context.Context, credential *Credential) error {

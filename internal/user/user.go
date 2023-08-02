@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Untanky/modern-auth/internal/core"
-	"github.com/Untanky/modern-auth/internal/utils"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/sha3"
 )
@@ -42,11 +41,11 @@ func (s *UserService) hashUserId(userId []byte) []byte {
 }
 
 func (s *UserService) GetUserByUserID(ctx context.Context, userId []byte) (*User, error) {
-	return s.repo.FindByUserId(ctx, utils.EncodeBase64(s.hashUserId(userId)))
+	return s.repo.FindByUserId(ctx, s.hashUserId(userId))
 }
 
 func (s *UserService) ExistsUserId(ctx context.Context, userId []byte) (bool, error) {
-	return s.repo.ExistsUserId(ctx, utils.EncodeBase64(s.hashUserId(userId)))
+	return s.repo.ExistsUserId(ctx, s.hashUserId(userId))
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *User) error {
