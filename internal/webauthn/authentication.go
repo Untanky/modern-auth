@@ -19,10 +19,10 @@ type InitiateAuthenticationRequest struct {
 }
 
 type InitiateAuthenticationResponse struct {
-	OptionId        string                             `json:"optionId"`
-	Type            string                             `json:"type"`
-	CreationOptions PublicKeyCredentialCreationOptions `json:"publicKey"`
-	RequestOptions  PublicKeyCredentialRequestOptions  `json:"publicKeyFoo"`
+	AuthenticationId string                             `json:"authenticationId"`
+	Type             string                             `json:"type"`
+	CreationOptions  PublicKeyCredentialCreationOptions `json:"publicKey"`
+	RequestOptions   PublicKeyCredentialRequestOptions  `json:"publicKeyFoo"`
 }
 
 type PublicKeyCredentialCreationOptions struct {
@@ -75,19 +75,19 @@ type AuthenticationSelection struct {
 }
 
 type CreateCredentialRequest struct {
-	OptionId string                   `json:"optionId"`
-	Id       string                   `json:"id"`
-	RawID    []byte                   `json:"rawId"`
-	Type     string                   `json:"type"`
-	Response CreateCredentialResponse `json:"response"`
+	AuthenticationID string                   `json:"authenticationId"`
+	Id               string                   `json:"id"`
+	RawID            []byte                   `json:"rawId"`
+	Type             string                   `json:"type"`
+	Response         CreateCredentialResponse `json:"response"`
 }
 
 type RequestCredentialRequest struct {
-	OptionId string                    `json:"optionId"`
-	Id       string                    `json:"id"`
-	RawID    []byte                    `json:"rawId"`
-	Type     string                    `json:"type"`
-	Response RequestCredentialResponse `json:"response"`
+	AuthenticationID string                    `json:"authenticationId"`
+	Id               string                    `json:"id"`
+	RawID            []byte                    `json:"rawId"`
+	Type             string                    `json:"type"`
+	Response         RequestCredentialResponse `json:"response"`
 }
 
 type UserService interface {
@@ -127,8 +127,8 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 
 	if user == nil {
 		initResponse = &InitiateAuthenticationResponse{
-			OptionId: id,
-			Type:     "create",
+			AuthenticationId: id,
+			Type:             "create",
 			CreationOptions: PublicKeyCredentialCreationOptions{
 				// TODO: randomly generate challenge
 				Challenge: []byte("1234567890"),
@@ -171,8 +171,8 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 		}
 
 		initResponse = &InitiateAuthenticationResponse{
-			OptionId: id,
-			Type:     "get",
+			AuthenticationId: id,
+			Type:             "get",
 			RequestOptions: PublicKeyCredentialRequestOptions{
 				// TODO: randomly generate challenge
 				Challenge:        []byte("1234567890"),
@@ -227,7 +227,7 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, respons
 }
 
 func (s *AuthenticationService) Login(ctx context.Context, request *RequestCredentialRequest) error {
-	options, err := s.initAuthenticationStore.Get(request.OptionId)
+	options, err := s.initAuthenticationStore.Get(request.AuthenticationID)
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.Register(ctx.Request.Context(), request.OptionId, &request.Response)
+	err = c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request.Response)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",

@@ -1,5 +1,5 @@
-export type MyCredentialCreationOptions = CredentialCreationOptions & { optionId: string; type: 'create' };
-export type MyCredentialRequestOptions = CredentialRequestOptions & { optionId: string; type: 'get' };
+export type MyCredentialCreationOptions = CredentialCreationOptions & { authenticationId: string; type: 'create' };
+export type MyCredentialRequestOptions = CredentialRequestOptions & { authenticationId: string; type: 'get' };
 export type CredentialOptions = MyCredentialCreationOptions | MyCredentialRequestOptions;
 
 export const initiateAuthentication = async (userId: string): Promise<CredentialOptions> => {
@@ -17,7 +17,7 @@ const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(atob(bas
 
 export const signUp = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
-  await postNewCredential(credentialOptions.optionId, credential);
+  await postNewCredential(credentialOptions.authenticationId, credential);
 };
 
 const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKeyCredential> => {
@@ -33,7 +33,7 @@ const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKey
   }) as Promise<PublicKeyCredential>;
 };
 
-const postNewCredential = (optionId: string, credential: PublicKeyCredential): Promise<Response> => {
+const postNewCredential = (authenticationId: string, credential: PublicKeyCredential): Promise<Response> => {
   const { clientDataJSON, attestationObject } = credential.response as AuthenticatorAttestationResponse;
 
   return fetch('/v1/webauthn/authentication/create', {
@@ -43,7 +43,7 @@ const postNewCredential = (optionId: string, credential: PublicKeyCredential): P
     },
     body: JSON.stringify({
       id: credential.id,
-      optionId,
+      authenticationId,
       type: credential.type,
       response: {
         clientDataJSON: bufferToBase64(clientDataJSON),
@@ -56,7 +56,7 @@ const postNewCredential = (optionId: string, credential: PublicKeyCredential): P
 export const signIn = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
   const credential = await getCredential(credentialOptions);
   console.log(credential);
-  validateCredential(credentialOptions.optionId, credential);
+  validateCredential(credentialOptions.authenticationId, credential);
 };
 
 const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCredential> => {
@@ -73,7 +73,7 @@ const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCred
   }) as Promise<PublicKeyCredential>;
 };
 
-const validateCredential = (optionId: string, credential: PublicKeyCredential): Promise<Response> => {
+const validateCredential = (authenticationId: string, credential: PublicKeyCredential): Promise<Response> => {
   const { clientDataJSON, authenticatorData, signature, userHandle } = credential.response as AuthenticatorAssertionResponse;
 
   return fetch('/v1/webauthn/authentication/validate', {
@@ -84,7 +84,7 @@ const validateCredential = (optionId: string, credential: PublicKeyCredential): 
     body: JSON.stringify({
       id: credential.id,
       rawId: bufferToBase64(credential.rawId),
-      optionId,
+      authenticationId,
       type: credential.type,
       response: {
         clientDataJSON: bufferToBase64(clientDataJSON),
