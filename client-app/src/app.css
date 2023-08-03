@@ -11,6 +11,11 @@
     /* dark colors */
     @apply dark:bg-stone-900 dark:text-stone-100;
   }
+
+  * {
+    /* outline */
+    @apply outline-blue-300 focus:outline-dashed outline-2 outline-offset-1;
+  }
 }
 
 @layer components {

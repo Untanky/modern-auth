@@ -25,7 +25,7 @@
     </label>
     <input
       bind:value={userId}
-      class="dark:bg-stone-800 mt-3 px-4 py-2 dark:border-stone-600 border rounded-lg w-full focus:outline-none focus:border-yellow-500"
+      class="dark:bg-stone-800 mt-3 px-4 py-2 dark:border-stone-600 border rounded-lg w-full"
       type="text"
       id="user-id"
       placeholder="Your user id"
