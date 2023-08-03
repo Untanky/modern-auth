@@ -10,7 +10,7 @@
 <ul class="space-y-2.5 {klass}">
   {#each resourceServers as resourceServer}
   <li>
-    <ResourceServer resourceServer={resourceServer}></ResourceServer>
+    <ResourceServer resourceServer={resourceServer} />
   </li>
   {/each}
 </ul>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Input from "../utils/Input.svelte";
+
   export let submit: (userId: string) => void;
 
   let userId = '';
@@ -10,6 +12,12 @@
 
     submit(event.target[0].value);
   }
+
+  const onChangeUserId = (event: Event): void => {
+    const input = event.target as HTMLInputElement;
+
+    userId = input.value;
+  }
 </script>
 
 <form class="flex flex-col flex-1" on:submit={onClick}>
@@ -19,19 +27,15 @@
   <p class="mt-2">
     To authenticate, we need to know who you are. Please enter your user id.
   </p>
-  <div class="relative mt-4">
-    <label class="font-extralight text-sm uppercase dark:bg-stone-800 px-1 left-3 absolute block rounded" for="user-id">
-      User ID:
-    </label>
-    <input
-      bind:value={userId}
-      class="dark:bg-stone-800 mt-3 px-4 py-2 dark:border-stone-600 border rounded-lg w-full"
-      type="text"
-      id="user-id"
-      placeholder="Your user id"
-      autocomplete="username"
-    />
-  </div>
+  <Input
+    label="User ID:"
+    value={userId}
+    onInput={onChangeUserId}
+    id="user-id"
+    type="text"
+    placeholder="Your user id"
+    autocomplete="username"
+  />
   <button type="submit" class="self-end mt-4 btn btn-primary" disabled={!canSubmit}>
     Continue
   </button>

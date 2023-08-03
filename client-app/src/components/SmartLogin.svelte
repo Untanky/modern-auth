@@ -65,18 +65,12 @@
   {/if}
 </div>
 <AuthorizationProgress></AuthorizationProgress>
-<Authorization submit={console.log}></Authorization>
-<!-- {#if $state.state === 'userId'}
+{#if $state.state === 'userId'}
 <Identification submit={onInitiateAuthentication} />
 {:else if $state.state === 'createCredential'}
 <Registration submit={onCreateCredential} />
 {:else if $state.state === 'getCredential'}
-<Authentication submit={onGetCredential} />
-{:else if $state.state === 'success'} -->
-<!-- <h2 class="text-xl">
-  Success
-  <p>
-    When you click on authenticate a system dialog will open and ask you to authenticate with your biometric data or a physical hardware token. Please prepare for the method chosen when setting up this device.
-  </p>
-</h2> -->
-<!-- {/if} -->
+<Authentication userId={$state.userId} submit={onGetCredential} />
+{:else if $state.state === 'success'}
+<Authorization submit={console.log}></Authorization>
+{/if}

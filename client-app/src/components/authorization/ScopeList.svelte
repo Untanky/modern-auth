@@ -8,7 +8,7 @@
 <ul class="space-y-1 pt-2">
   {#each scopes as scope}
   <li>
-    <Scope scope={scope}></Scope>
+    <Scope scope={scope} />
   </li>
   {/each}
 </ul>
