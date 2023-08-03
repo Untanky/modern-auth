@@ -6,7 +6,6 @@ export type AuthorizationState = 'userId' | 'createCredential' | 'getCredential'
 let authorizationState: AuthorizationState = 'userId';
 let loading = false;
 let error: Error | null = null;
-let userId: string | null = null;
 
 type authorizationStateType = {
   state: 'userId';

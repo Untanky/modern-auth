@@ -29,6 +29,7 @@
       type="text"
       id="user-id"
       placeholder="Your user id"
+      autocomplete="username"
     />
   </div>
   <button type="submit" class="self-end mt-4 btn btn-primary" disabled={!canSubmit}>

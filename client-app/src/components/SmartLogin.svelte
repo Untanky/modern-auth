@@ -29,7 +29,11 @@
       return;
     }
 
-    signUp(localState.credentialOptions);
+    signUp(localState.credentialOptions).then(() => {
+      state.update(oldState => ({ ...oldState, state: 'success' } as any));
+    }).catch((err) => {
+      state.update(oldState => ({ ...oldState, error: err }));
+    });
   };
 
   const onGetCredential = (): void => {
@@ -38,7 +42,11 @@
       return;
     }
 
-    signIn(localState.credentialOptions);
+    signIn(localState.credentialOptions).then(() => {
+      state.update(oldState => ({ ...oldState, state: 'success' } as any));
+    }).catch((err) => {
+      state.update(oldState => ({ ...oldState, error: err }));
+    });
   };
 </script>
 
@@ -62,4 +70,11 @@
 <Registration submit={onCreateCredential} />
 {:else if $state.state === 'getCredential'}
 <Authentication submit={onGetCredential} />
+{:else if $state.state === 'success'}
+<h2 class="text-xl">
+  Success
+  <p>
+    When you click on authenticate a system dialog will open and ask you to authenticate with your biometric data or a physical hardware token. Please prepare for the method chosen when setting up this device.
+  </p>
+</h2>
 {/if}

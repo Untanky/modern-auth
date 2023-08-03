@@ -20,7 +20,7 @@
       on:click={() => method = 'public-key'}
       on:keypress={() => method = 'public-key'}
     >
-      <h3 class="text-lg">Biometric/physical authentication</h3>
+      <h3 class="text-lg">Biometric or physical authentication</h3>
       {#if method === 'public-key'}
       <p>
         When you click on authenticate a system dialog will open and ask you to authenticate with your biometric data or a physical hardware token. Please prepare for the method chosen when setting up this device.
@@ -46,7 +46,7 @@
       <input 
         class="dark:bg-stone-800 mt-3 px-4 py-2 dark:border-stone-600 border rounded-lg w-full"
         type="password"
-        tabindex="-1"
+        autocomplete="current-password"
       >
       <button type="button" on:click={submit} class="self-end mt-2 btn btn-primary">
         Continue
