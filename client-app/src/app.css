@@ -27,7 +27,7 @@
     /* layout */
     @apply inline-block px-4 py-2 rounded-lg;
     /* normal colors */
-    @apply bg-stone-500 text-stone-50;
+    @apply bg-stone-500 text-stone-50 transition-colors duration-300;
     /* dark colors */
     @apply dark:bg-stone-400 dark:text-stone-950;
   }
@@ -36,6 +36,11 @@
     /* normal colors */
     @apply bg-yellow-400 text-stone-950;
     /* dark colors */
-    @apply bg-yellow-500;
+    @apply dark:bg-yellow-500;
+  }
+
+  .btn-primary:disabled {
+    @apply bg-yellow-200 text-stone-500;
+    @apply dark:bg-yellow-200;
   }
 }
