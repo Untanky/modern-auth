@@ -2,7 +2,7 @@ package webauthn
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	"github.com/Untanky/modern-auth/internal/core"
@@ -92,6 +92,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 			AuthenticationId: id,
 			Type:             "get",
 			Options: PublicKeyCredentialRequestOptions{
+				UserId: []byte(request.UserId),
 				// TODO: randomly generate challenge
 				Challenge:        []byte("1234567890"),
 				RpID:             rpId,
@@ -111,26 +112,40 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 	return initResponse, nil
 }
 
-func (s *AuthenticationService) Register(ctx context.Context, id string, response *CreateCredentialResponse) error {
+func (s *AuthenticationService) Register(ctx context.Context, id string, request *CreateCredentialRequest) error {
 	options, err := s.initAuthenticationStore.Get(id)
 	if err != nil {
 		return err
 	}
 
-	creationOptions, ok := options.(*CredentialCreationOptions)
-	if !ok {
-		return fmt.Errorf("invalid options")
+	// NOTE: maybe move this to the authenticator controller
+	clientData := &clientData{
+		Raw: request.Response.ClientDataJSON,
 	}
-
-	credential, err := response.Validate(creationOptions)
+	err = json.Unmarshal(request.Response.ClientDataJSON, clientData)
 	if err != nil {
 		return err
 	}
 
-	// TODO: assess trust of the authenticator
+	attestationObject, err := request.Response.AttestationObject.Decode()
+	if err != nil {
+		return err
+	}
+
+	response := &CreationCredentialResponse{
+		ClientData:        *clientData,
+		AttestationObject: *attestationObject,
+	}
+
+	credential := &user.Credential{}
+
+	err = response.Validate(options.GetOptions(), credential)
+	if err != nil {
+		return err
+	}
 
 	userInstance := &user.User{
-		UserID: creationOptions.Options.User.Id,
+		UserID: options.GetUserID(),
 		Status: "active",
 	}
 
@@ -160,12 +175,28 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 		return err
 	}
 
-	requestOptions, ok := options.(*CredentialRequestOptions)
-	if !ok {
-		return fmt.Errorf("invalid options")
+	// NOTE: maybe move this to the authenticator controller
+	clientData := &clientData{
+		Raw: request.Response.ClientDataJSON,
+	}
+	err = json.Unmarshal(request.Response.ClientDataJSON, clientData)
+	if err != nil {
+		return err
 	}
 
-	err = request.Response.Validate(requestOptions, credential)
+	authenticatorData, err := decodeAuthData(request.Response.AuthenticatorData)
+	if err != nil {
+		return err
+	}
+
+	response := &RequestCredentialResponse{
+		ClientData:        *clientData,
+		AuthenticatorData: authenticatorData,
+		Signature:         request.Response.Signature,
+		UserHandle:        request.Response.UserHandle,
+	}
+
+	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
 		return err
 	}
@@ -222,7 +253,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request.Response)
+	err = c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",

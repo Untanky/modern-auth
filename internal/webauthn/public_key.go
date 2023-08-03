@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"fmt"
 	"hash"
-	"log"
 	"math/big"
 
 	"github.com/fxamacker/cbor/v2"
@@ -52,7 +51,6 @@ func (k *publicKeyData) GetHashFunc() func() hash.Hash {
 		return crypto.SHA512.New
 	default:
 		// TODO: proper error handling
-		log.Printf("ERROR: invalid algorithm: %v", k.Alg)
 		return nil
 	}
 }
