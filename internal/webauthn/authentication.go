@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Untanky/modern-auth/internal/core"
-	"github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/domain"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -17,14 +17,14 @@ const rpId = "localhost" // TODO: make customizable
 
 type AuthenticationService struct {
 	initAuthenticationStore core.KeyValueStore[string, CredentialOptions]
-	userService             *user.UserService
-	credentialService       *user.CredentialService
+	userService             *domain.UserService
+	credentialService       *domain.CredentialService
 }
 
 func NewAuthenticationService(
 	initAuthenticationStore core.KeyValueStore[string, CredentialOptions],
-	userService *user.UserService,
-	credentialService *user.CredentialService,
+	userService *domain.UserService,
+	credentialService *domain.CredentialService,
 ) *AuthenticationService {
 	return &AuthenticationService{
 		initAuthenticationStore: initAuthenticationStore,
@@ -137,14 +137,14 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 		AttestationObject: *attestationObject,
 	}
 
-	credential := &user.Credential{}
+	credential := &domain.Credential{}
 
 	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
 		return err
 	}
 
-	userInstance := &user.User{
+	userInstance := &domain.User{
 		UserID: options.GetUserID(),
 		Status: "active",
 	}

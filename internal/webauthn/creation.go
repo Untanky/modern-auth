@@ -3,7 +3,7 @@ package webauthn
 import (
 	"fmt"
 
-	"github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/domain"
 	"github.com/Untanky/modern-auth/internal/utils"
 )
 
@@ -96,7 +96,7 @@ type CreationCredentialResponse struct {
 	AttestationObject attestationObject
 }
 
-func (response *CreationCredentialResponse) Validate(options PublicKeyCredentialOptions, credential *user.Credential) error {
+func (response *CreationCredentialResponse) Validate(options PublicKeyCredentialOptions, credential *domain.Credential) error {
 	err := options.ValidateClientData(response.ClientData)
 	if err != nil {
 		return err

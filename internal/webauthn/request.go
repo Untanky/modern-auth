@@ -3,12 +3,12 @@ package webauthn
 import (
 	"fmt"
 
-	"github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/domain"
 	"github.com/Untanky/modern-auth/internal/utils"
 )
 
 type CredentialResponse interface {
-	Validate(options CredentialOptions, credential *user.Credential) error
+	Validate(options CredentialOptions, credential *domain.Credential) error
 }
 
 type PublicKeyCredentialOptions interface {
@@ -72,7 +72,7 @@ type RequestCredentialResponse struct {
 	UserHandle        []byte
 }
 
-func (response *RequestCredentialResponse) Validate(options PublicKeyCredentialOptions, credential *user.Credential) error {
+func (response *RequestCredentialResponse) Validate(options PublicKeyCredentialOptions, credential *domain.Credential) error {
 	err := options.ValidateClientData(response.ClientData)
 	if err != nil {
 		return err

@@ -3,7 +3,7 @@ package gorm
 import (
 	"context"
 
-	domain "github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/domain"
 	"github.com/google/uuid"
 
 	"gorm.io/gorm"

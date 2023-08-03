@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
+	"github.com/Untanky/modern-auth/internal/domain"
 	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
 	"github.com/Untanky/modern-auth/internal/oauth2"
-	"github.com/Untanky/modern-auth/internal/user"
 	"github.com/Untanky/modern-auth/internal/webauthn"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -71,9 +71,9 @@ func (a *App) Start() {
 
 	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.CredentialOptions]()
 	userRepo := gormLocal.NewGormUserRepo(a.db)
-	userService := user.NewUserService(userRepo)
+	userService := domain.NewUserService(userRepo)
 	credentialRepo := gormLocal.NewGormCredentialRepo(a.db)
-	credentialService := user.NewCredentialService(credentialRepo)
+	credentialService := domain.NewCredentialService(credentialRepo)
 	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, userService, credentialService)
 	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
