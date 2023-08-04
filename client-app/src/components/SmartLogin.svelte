@@ -57,7 +57,7 @@
   </h1>
   {#if $state.state === 'userId'}
   <a
-    class="text-yellow-500 dark:text-yellow-400 underline"
+    class="text-yellow-500 dark:text-yellow-400 underline rounded"
     href="#"
   >
     Register instead

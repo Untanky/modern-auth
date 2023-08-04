@@ -8,13 +8,13 @@
 </script>
 
 <div class="relative mt-4">
-  <label class="font-extralight text-sm uppercase {disabled && 'dark:text-stone-400'} dark:bg-stone-800 px-1 left-3 absolute block rounded" for={id}>
+  <label class="font-extralight text-sm uppercase {disabled && 'dark:text-stone-400'} bg-stone-50 dark:bg-stone-900 px-1 left-3 absolute block rounded" for={id}>
     {label}
   </label>
   <input
     value={value}
     on:input={onInput}
-    class="dark:bg-stone-800 mt-3 px-4 py-2 disabled:dark:text-stone-400  {disabled && 'dark:border-stone-700'} border rounded-lg w-full"
+    class="bg-transparent mt-3 px-4 py-2 disabled:text-stone-500 disabled:dark:text-stone-400 border border-stone-600 dark:border-stone-400 disabled:border-stone-300 disabled:dark:border-stone-700 rounded-lg w-full"
     type={type}
     id={id}
     placeholder={placeholder}
