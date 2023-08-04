@@ -1,6 +1,7 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { initiateAuthentication, signIn, signUp } from '../lib/authentication';
+  import { login, register } from '../lib/authentication';
+  import { initiateAuthentication } from '../lib/secure-client';
   import { state } from '../lib/state';
   import AuthorizationProgress from './AuthenticationProgress.svelte';
   import Authentication from './forms/Authentication.svelte';
@@ -30,7 +31,7 @@
       return;
     }
 
-    signUp(localState.credentialOptions).then(() => {
+    register(localState.credentialOptions).then(() => {
       state.update(oldState => ({ ...oldState, state: 'success' } as any));
     }).catch((err) => {
       state.update(oldState => ({ ...oldState, error: err }));
@@ -43,7 +44,7 @@
       return;
     }
 
-    signIn(localState.credentialOptions).then(() => {
+    login(localState.credentialOptions).then(() => {
       state.update(oldState => ({ ...oldState, state: 'success' } as any));
     }).catch((err) => {
       state.update(oldState => ({ ...oldState, error: err }));
