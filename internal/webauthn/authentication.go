@@ -3,7 +3,9 @@ package webauthn
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/domain"
@@ -97,7 +99,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 				Challenge:        []byte("1234567890"),
 				RpID:             rpId,
 				UserVerification: "preferred",
-				Attestation:      "indirect",
+				Attestation:      "direct",
 				AllowCredentials: allowCredentials,
 				Timeout:          60000,
 			},
@@ -112,10 +114,10 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 	return initResponse, nil
 }
 
-func (s *AuthenticationService) Register(ctx context.Context, id string, request *CreateCredentialRequest) error {
+func (s *AuthenticationService) Register(ctx context.Context, id string, request *CreateCredentialRequest) (*Success, error) {
 	options, err := s.initAuthenticationStore.Get(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// NOTE: maybe move this to the authenticator controller
@@ -124,12 +126,12 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 	}
 	err = json.Unmarshal(request.Response.ClientDataJSON, clientData)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	attestationObject, err := request.Response.AttestationObject.Decode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	response := &CreationCredentialResponse{
@@ -141,7 +143,7 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 
 	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	userInstance := &domain.User{
@@ -151,28 +153,38 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 
 	err = s.userService.CreateUser(ctx, userInstance)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	credential.User = userInstance
 
 	err = s.credentialService.CreateCredential(ctx, credential)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	result, err := s.IssueGrant(ctx, credential)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-func (s *AuthenticationService) Login(ctx context.Context, request *RequestCredentialRequest) error {
+type Success struct {
+	AccessToken  *domain.AccessToken  `json:"accessToken"`
+	RefreshToken *domain.RefreshToken `json:"refreshToken"`
+}
+
+func (s *AuthenticationService) Login(ctx context.Context, request *RequestCredentialRequest) (*Success, error) {
 	options, err := s.initAuthenticationStore.Get(request.AuthenticationID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	credential, err := s.credentialService.GetCredentialByCredentialID(ctx, request.RawID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// NOTE: maybe move this to the authenticator controller
@@ -181,12 +193,12 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 	}
 	err = json.Unmarshal(request.Response.ClientDataJSON, clientData)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	authenticatorData, err := decodeAuthData(request.Response.AuthenticatorData)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	response := &RequestCredentialResponse{
@@ -198,12 +210,33 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 
 	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// TODO: assess trust of the authenticator
+	result, err := s.IssueGrant(ctx, credential)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	return result, nil
+}
+
+func (s *AuthenticationService) IssueGrant(ctx context.Context, credential *domain.Credential) (*Success, error) {
+	grant := domain.NewGrant(credential.User.ID)
+	grant.AllowRefreshToken = true
+	grant.ExpiresAt = grant.IssuedAt.Add(time.Hour * 24 * 30)
+	grant.NotBefore = grant.IssuedAt
+	grant.Scope = []string{"openid", "profile", "email", "authorization"}
+	grant.ClientID = "central"
+	grant.SubjectID = credential.User.ID
+	accessToken, refreshToken, err := domain.RegisterGrant(ctx, grant)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("SUCCESS", accessToken, refreshToken)
+
+	return &Success{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
 type AuthenticationController struct {
@@ -253,7 +286,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request)
+	result, err := c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
@@ -261,9 +294,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, gin.H{
-		"success": true,
-	})
+	ctx.JSON(200, &result)
 }
 
 func (c *AuthenticationController) getCredential(ctx *gin.Context) {
@@ -276,7 +307,7 @@ func (c *AuthenticationController) getCredential(ctx *gin.Context) {
 		return
 	}
 
-	err = c.service.Login(ctx.Request.Context(), &request)
+	result, err := c.service.Login(ctx.Request.Context(), &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
@@ -284,7 +315,5 @@ func (c *AuthenticationController) getCredential(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, gin.H{
-		"success": true,
-	})
+	ctx.JSON(200, &result)
 }
