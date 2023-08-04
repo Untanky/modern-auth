@@ -4,9 +4,9 @@
   import { state } from '../lib/state';
   import AuthorizationProgress from './AuthenticationProgress.svelte';
   import Authentication from './forms/Authentication.svelte';
+  import Authorization from './forms/Authorization.svelte';
   import Identification from './forms/Identification.svelte';
   import Registration from './forms/Registration.svelte';
-  import Authorization from './forms/Authorization.svelte';
 
   const onInitiateAuthentication = (userId: string): void => {
     state.update(state => ({ ...state, loading: true } ));
