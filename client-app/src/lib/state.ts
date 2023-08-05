@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./authentication";
+import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./secure-client";
 
 export type AuthorizationState = 'userId' | 'createCredential' | 'getCredential' | 'success';
   

@@ -48,6 +48,11 @@ const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCred
   }) as Promise<PublicKeyCredential>;
 };
 
+export const logout = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+}
+
 const getTokens = (): SuccessfulResponse => {
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
