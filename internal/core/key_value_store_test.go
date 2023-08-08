@@ -13,11 +13,11 @@ type Person struct {
 func TestKeyValueStoreFullFlow(t *testing.T) {
 	tests := []struct {
 		name  string
-		store core.KeyValueStore[string, Person]
+		store core.KeyValueStore[string, *Person]
 	}{
 		{
 			name:  "In Memory Key Value Store",
-			store: core.NewInMemoryKeyValueStore[Person](),
+			store: core.NewInMemoryKeyValueStore[*Person](),
 		},
 	}
 	for _, tt := range tests {

@@ -7,9 +7,14 @@
 
   :root {
     /* normal colors */
-    @apply bg-stone-50 text-stone-950;
+    @apply bg-stone-100 text-stone-950;
     /* dark colors */
-    @apply dark:bg-stone-900 dark:text-stone-100;
+    @apply dark:bg-stone-800 dark:text-stone-50;
+  }
+
+  * {
+    /* outline */
+    @apply focus:outline-blue-600 dark:focus:outline-blue-300 focus:outline-dashed focus:outline-2 focus:outline-offset-1;
   }
 }
 
@@ -18,16 +23,16 @@
     /* layout */
     @apply border rounded-2xl p-6;
     /* normal colors */
-    @apply bg-stone-100 border-stone-400;
+    @apply bg-stone-50 border-stone-400;
     /* dark colors */
-    @apply dark:bg-stone-800 dark:border-stone-600;
+    @apply dark:bg-stone-900 dark:border-stone-600;
   }
 
   .btn {
     /* layout */
     @apply inline-block px-4 py-2 rounded-lg;
     /* normal colors */
-    @apply bg-stone-500 text-stone-50;
+    @apply bg-stone-500 text-stone-50 transition-colors duration-300;
     /* dark colors */
     @apply dark:bg-stone-400 dark:text-stone-950;
   }
@@ -36,6 +41,11 @@
     /* normal colors */
     @apply bg-yellow-400 text-stone-950;
     /* dark colors */
-    @apply bg-yellow-500;
+    @apply dark:bg-yellow-500;
+  }
+
+  .btn-primary:disabled {
+    @apply bg-yellow-200 text-stone-500;
+    @apply dark:bg-yellow-200;
   }
 }

@@ -55,8 +55,8 @@ func (e *AuthorizationError) Error() string {
 	return fmt.Sprintf("AuthorizationError: %s", e.Description)
 }
 
-type AuthorizationStore = core.KeyValueStore[string, AuthorizationRequest]
-type CodeStore = core.KeyValueStore[string, AuthorizationRequest]
+type AuthorizationStore = core.KeyValueStore[string, *AuthorizationRequest]
+type CodeStore = core.KeyValueStore[string, *AuthorizationRequest]
 
 type AuthorizationService struct {
 	authorizationStore       AuthorizationStore

@@ -250,7 +250,7 @@ type TokenHandler interface {
 	Validate(ctx context.Context, token string) (*AuthorizationGrant, error)
 }
 
-type TokenStore = core.KeyValueStore[string, AuthorizationGrant]
+type TokenStore = core.KeyValueStore[string, *AuthorizationGrant]
 
 type RandomTokenHandler struct {
 	tokenSize       int

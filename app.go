@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/Untanky/modern-auth/internal/core"
+	"github.com/Untanky/modern-auth/internal/domain"
 	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
 	"github.com/Untanky/modern-auth/internal/oauth2"
-	"github.com/Untanky/modern-auth/internal/user"
 	"github.com/Untanky/modern-auth/internal/webauthn"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -105,8 +105,8 @@ func (a *App) Start() {
 	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
 	clientController := oauth2.NewClientController(clientService)
 
-	authorizationStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
-	codeStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationRequest]()
+	authorizationStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
+	codeStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
 	authorizationCodeInit, err := meter.Int64Counter("authorization_code_init")
 	if err != nil {
 		log.Fatal(err)
@@ -118,13 +118,13 @@ func (a *App) Start() {
 	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService, logger.Named("AuthorizationService"), authorizationCodeInit, authorizationCodeSuccess)
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
-	accessTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
+	accessTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
 	accessTokensGenerated, err := meter.Int64Counter("access_tokens_generated")
 	if err != nil {
 		log.Fatal(err)
 	}
 	accessTokenHandler := oauth2.NewRandomTokenHandler(48, accessTokenStore, logger.Named("AccessTokenHandler"), accessTokensGenerated)
-	refreshTokenStore := core.NewInMemoryKeyValueStore[oauth2.AuthorizationGrant]()
+	refreshTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
 	refreshTokensGenerated, err := meter.Int64Counter("refresh_tokens_generated")
 	if err != nil {
 		log.Fatal(err)
@@ -137,11 +137,11 @@ func (a *App) Start() {
 	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, logger.Named("TokenService"), tokenRequest)
 	tokenController := oauth2.NewTokenController(oauthTokenService)
 
-	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.InitiateAuthenticationResponse]()
+	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.CredentialOptions]()
 	userRepo := gormLocal.NewGormUserRepo(a.db)
-	userService := user.NewUserService(userRepo)
+	userService := domain.NewUserService(userRepo)
 	credentialRepo := gormLocal.NewGormCredentialRepo(a.db)
-	credentialService := user.NewCredentialService(credentialRepo)
+	credentialService := domain.NewCredentialService(credentialRepo)
 	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, userService, credentialService)
 	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")

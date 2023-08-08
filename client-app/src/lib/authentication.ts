@@ -1,23 +1,18 @@
-export type MyCredentialCreationOptions = CredentialCreationOptions & { optionId: string; type: 'create' };
-export type MyCredentialRequestOptions = CredentialRequestOptions & { optionId: string; type: 'get' };
-export type CredentialOptions = MyCredentialCreationOptions | MyCredentialRequestOptions;
+import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./secure-client";
+import * as secureClient from './secure-client';
 
-export const initiateAuthentication = async (userId: string): Promise<CredentialOptions> => {
-  return fetch('/v1/webauthn/authentication/initiate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ userId }),
-  }).then((response) => response.json());
-};
+export interface SuccessfulResponse {
+  accessToken: string;
+  refreshToken: string;
+}
 
-const bufferToBase64 = (buffer: ArrayBuffer): string => btoa(String.fromCharCode(...new Uint8Array(buffer)));
-const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+export const bufferToBase64 = (buffer: ArrayBuffer): string => btoa(String.fromCharCode(...new Uint8Array(buffer)));
+export const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 
-export const signUp = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
+export const register = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
-  await postNewCredential(credentialOptions.optionId, credential);
+  const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.register(credentialOptions.authenticationId, credential);
+  storeTokens({ accessToken, refreshToken  });
 };
 
 const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKeyCredential> => {
@@ -33,38 +28,18 @@ const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKey
   }) as Promise<PublicKeyCredential>;
 };
 
-const postNewCredential = (optionId: string, credential: PublicKeyCredential): Promise<Response> => {
-  const { clientDataJSON, attestationObject } = credential.response as AuthenticatorAttestationResponse;
-
-  return fetch('/v1/webauthn/authentication/create', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      id: credential.id,
-      optionId,
-      type: credential.type,
-      response: {
-        clientDataJSON: bufferToBase64(clientDataJSON),
-        attestationObject: bufferToBase64(attestationObject),
-      },
-    }),
-  });
-};
-
-export const signIn = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
+export const login = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
   const credential = await getCredential(credentialOptions);
-  console.log(credential);
-  validateCredential(credentialOptions.optionId, credential);
+  const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.login(credentialOptions.authenticationId, credential);
+  storeTokens({ accessToken, refreshToken });
 };
 
 const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCredential> => {
   return navigator.credentials.get({
     publicKey: {
-      ...credOps.publicKeyFoo,
-      challenge: base64ToBuffer(credOps.publicKeyFoo.challenge as unknown as string),
-      allowCredentials: credOps.publicKeyFoo.allowCredentials?.map((cred) => ({
+      ...credOps.publicKey,
+      challenge: base64ToBuffer(credOps.publicKey.challenge as unknown as string),
+      allowCredentials: credOps.publicKey.allowCredentials?.map((cred) => ({
         ...cred,
         id: base64ToBuffer(cred.id as unknown as string),
         transports: [],
@@ -73,25 +48,19 @@ const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCred
   }) as Promise<PublicKeyCredential>;
 };
 
-const validateCredential = (optionId: string, credential: PublicKeyCredential): Promise<Response> => {
-  const { clientDataJSON, authenticatorData, signature, userHandle } = credential.response as AuthenticatorAssertionResponse;
+export const logout = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+}
 
-  return fetch('/v1/webauthn/authentication/validate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      id: credential.id,
-      rawId: bufferToBase64(credential.rawId),
-      optionId,
-      type: credential.type,
-      response: {
-        clientDataJSON: bufferToBase64(clientDataJSON),
-        authenticatorData: bufferToBase64(authenticatorData),
-        signature: bufferToBase64(signature),
-        userHandle: bufferToBase64(userHandle),
-      }
-    }),
-  })
+const getTokens = (): SuccessfulResponse => {
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+  
+  return { accessToken, refreshToken };
+};
+
+const storeTokens = (tokens: SuccessfulResponse): void => {
+  localStorage.setItem('accessToken', tokens.accessToken);
+  localStorage.setItem('refreshToken', tokens.refreshToken);
 };

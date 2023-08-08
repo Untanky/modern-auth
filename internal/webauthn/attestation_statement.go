@@ -23,8 +23,8 @@ func (p *packedAttestationStatemment) validateWithoutCert(authenticatorData Auth
 		return fmt.Errorf("invalid algorithm")
 	}
 
-	data := append(authenticatorData.Raw, clientDataHash...)
-	ok := authenticatorData.CredentialPublicKey.Verify(p.signature, data)
+	verificationData := append(authenticatorData.Raw, clientDataHash...)
+	ok := authenticatorData.CredentialPublicKey.Verify(p.signature, verificationData)
 	if !ok {
 		return fmt.Errorf("invalid signature")
 	}

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { initiateAuthentication, signIn, signUp } from '../lib/authentication';
+  import { login, register } from '../lib/authentication';
+  import { initiateAuthentication } from '../lib/secure-client';
   import { state } from '../lib/state';
   import AuthorizationProgress from './AuthenticationProgress.svelte';
   import Authentication from './forms/Authentication.svelte';
+  import Authorization from './forms/Authorization.svelte';
   import Identification from './forms/Identification.svelte';
   import Registration from './forms/Registration.svelte';
 
@@ -29,7 +31,11 @@
       return;
     }
 
-    signUp(localState.credentialOptions);
+    register(localState.credentialOptions).then(() => {
+      state.update(oldState => ({ ...oldState, state: 'success' } as any));
+    }).catch((err) => {
+      state.update(oldState => ({ ...oldState, error: err }));
+    });
   };
 
   const onGetCredential = (): void => {
@@ -38,7 +44,11 @@
       return;
     }
 
-    signIn(localState.credentialOptions);
+    login(localState.credentialOptions).then(() => {
+      state.update(oldState => ({ ...oldState, state: 'success' } as any));
+    }).catch((err) => {
+      state.update(oldState => ({ ...oldState, error: err }));
+    });
   };
 </script>
 
@@ -48,7 +58,7 @@
   </h1>
   {#if $state.state === 'userId'}
   <a
-    class="text-yellow-500 dark:text-yellow-400 underline"
+    class="text-yellow-500 dark:text-yellow-400 underline rounded"
     href="#"
   >
     Register instead
@@ -61,5 +71,7 @@
 {:else if $state.state === 'createCredential'}
 <Registration submit={onCreateCredential} />
 {:else if $state.state === 'getCredential'}
-<Authentication submit={onGetCredential} />
+<Authentication userId={$state.userId} submit={onGetCredential} />
+{:else if $state.state === 'success'}
+<Authorization submit={console.log}></Authorization>
 {/if}

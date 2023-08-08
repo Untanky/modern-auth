@@ -1,29 +1,42 @@
 <script lang="ts">
+  import Input from "../utils/Input.svelte";
+
   export let submit: (userId: string) => void;
 
-  const onClick = (event: Event) => {
+  let userId = '';
+
+  $: canSubmit = userId.length > 0;
+
+  const onClick = (event: SubmitEvent) => {
     event.preventDefault();
 
-    const inputElement = document.getElementById('user-id') as HTMLInputElement;
+    submit(event.target[0].value);
+  }
 
-    submit(inputElement.value);
+  const onChangeUserId = (event: Event): void => {
+    const input = event.target as HTMLInputElement;
+
+    userId = input.value;
   }
 </script>
 
-<form class="flex flex-col flex-1">
+<form class="flex flex-col flex-1" on:submit={onClick}>
   <h2 class="text-xl">
     Identification
   </h2>
   <p class="mt-2">
     To authenticate, we need to know who you are. Please enter your user id.
   </p>
-  <div class="relative mt-4">
-    <label class="font-extralight text-sm uppercase dark:bg-stone-800 px-1 left-3 absolute block" for="user-id">
-      User Id:
-    </label>
-    <input class="dark:bg-stone-800 mt-3 px-4 py-2 dark:border-stone-600 border rounded-lg w-full" type="text" id="user-id" placeholder="Your user id" />
-  </div>
-  <button type="button" on:click={onClick} class="self-end mt-4 btn btn-primary">
+  <Input
+    label="User ID:"
+    value={userId}
+    onInput={onChangeUserId}
+    id="user-id"
+    type="text"
+    placeholder="Your user id"
+    autocomplete="username"
+  />
+  <button type="submit" class="self-end mt-4 btn btn-primary" disabled={!canSubmit}>
     Continue
   </button>
 </form>

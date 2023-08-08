@@ -2,9 +2,8 @@ package gorm
 
 import (
 	"context"
-	"log"
 
-	domain "github.com/Untanky/modern-auth/internal/user"
+	"github.com/Untanky/modern-auth/internal/domain"
 	"github.com/google/uuid"
 
 	"gorm.io/gorm"
@@ -45,7 +44,6 @@ func NewGormUserRepo(db *gorm.DB) *GormUserRepo {
 
 func (r *GormUserRepo) FindByUserId(ctx context.Context, userId []byte) (*domain.User, error) {
 	var gormUser User
-	log.Printf("UserID: %s", string(userId))
 	err := r.db.WithContext(ctx).Where("user_id = ?", userId).First(&gormUser).Error
 	if err != nil {
 		return nil, err
