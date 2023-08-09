@@ -32,13 +32,13 @@ type contextKeyValueStore[Key comparable, Type interface{}] struct {
 	store KeyValueStore[Key, Type]
 }
 
-func (store *contextKeyValueStore[Key, Type]) Get(key Key) (*Type, error) {
+func (store *contextKeyValueStore[Key, Type]) Get(key Key) (Type, error) {
 	_, span := tracer.Start(store.ctx, "keyValueStore.Get", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	return store.store.Get(key)
 }
 
-func (store *contextKeyValueStore[Key, Type]) Set(key Key, value *Type) error {
+func (store *contextKeyValueStore[Key, Type]) Set(key Key, value Type) error {
 	_, span := tracer.Start(store.ctx, "keyValueStore.Set", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 	return store.store.Set(key, value)
