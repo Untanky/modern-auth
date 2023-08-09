@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"log/slog"
-	"os"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/domain"
@@ -14,13 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/exporters/prometheus"
-	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
@@ -29,44 +21,6 @@ import (
 type App struct {
 	db     *gorm.DB
 	engine *gin.Engine
-}
-
-func init() {
-	traceExporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:14268/api/traces")))
-	if err != nil {
-		log.Fatal(err)
-	}
-	mergedResource, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName("ModernAuth"),
-		),
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tracerProvider := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter),
-		trace.WithResource(mergedResource),
-	)
-
-	otel.SetTracerProvider(tracerProvider)
-
-	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-	slog.SetDefault(slogger)
-
-	meterExporter, err := prometheus.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	meterProvider := metric.NewMeterProvider(metric.WithReader(meterExporter))
-
-	otel.SetMeterProvider(meterProvider)
 }
 
 type entitiesKey string
@@ -93,8 +47,6 @@ func (a *App) Start() {
 		gormLocal.User{},
 		gormLocal.Credential{},
 	})
-
-	meter := otel.GetMeterProvider().Meter("github.com/Untanky/modern-auth")
 
 	requestMetrics, err := newRequestTelemetry(meter)
 	if err != nil {

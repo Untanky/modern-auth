@@ -1,21 +1,72 @@
 package main
 
 import (
+	"log"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	api "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
-type requestTelemetry struct {
-	requests     metric.Int64Counter
-	errors       metric.Int64Counter
-	latency      metric.Int64Histogram
-	responseSize metric.Int64Histogram
+var meter api.Meter
+
+func init() {
+	traceExporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:14268/api/traces")))
+	if err != nil {
+		log.Fatal(err)
+	}
+	mergedResource, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("ModernAuth"),
+		),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithBatcher(traceExporter),
+		trace.WithResource(mergedResource),
+	)
+
+	otel.SetTracerProvider(tracerProvider)
+
+	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(slogger)
+
+	meterExporter, err := prometheus.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	meterProvider := metric.NewMeterProvider(metric.WithReader(meterExporter))
+
+	meter = meterProvider.Meter("github.com/Untanky/modern-auth")
+
+	otel.SetMeterProvider(meterProvider)
 }
 
-func newRequestTelemetry(meter metric.Meter) (*requestTelemetry, error) {
+type requestTelemetry struct {
+	requests     api.Int64Counter
+	errors       api.Int64Counter
+	latency      api.Int64Histogram
+	responseSize api.Int64Histogram
+}
+
+func newRequestTelemetry(meter api.Meter) (*requestTelemetry, error) {
 	requestsInstrument, err := meter.Int64Counter("requests")
 	if err != nil {
 		return nil, err
@@ -26,12 +77,12 @@ func newRequestTelemetry(meter metric.Meter) (*requestTelemetry, error) {
 		return nil, err
 	}
 
-	latencyInstrument, err := meter.Int64Histogram("latency", metric.WithUnit("µs"))
+	latencyInstrument, err := meter.Int64Histogram("latency", api.WithUnit("µs"))
 	if err != nil {
 		return nil, err
 	}
 
-	responseSizeInstrument, err := meter.Int64Histogram("response_size", metric.WithUnit("µs"))
+	responseSizeInstrument, err := meter.Int64Histogram("response_size", api.WithUnit("µs"))
 	if err != nil {
 		return nil, err
 	}

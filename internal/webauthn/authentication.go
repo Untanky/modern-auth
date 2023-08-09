@@ -3,7 +3,6 @@ package webauthn
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -233,8 +232,6 @@ func (s *AuthenticationService) IssueGrant(ctx context.Context, credential *doma
 	if err != nil {
 		return nil, err
 	}
-
-	log.Println("SUCCESS", accessToken, refreshToken)
 
 	return &Success{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
