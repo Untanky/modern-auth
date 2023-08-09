@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
@@ -10,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 type AuthorizationRequest struct {
@@ -62,12 +62,14 @@ type AuthorizationService struct {
 	authorizationStore       AuthorizationStore
 	codeStore                CodeStore
 	clientService            *ClientService
-	logger                   *zap.SugaredLogger
+	logger                   *slog.Logger
 	authorizationCodeInit    metric.Int64Counter
 	authorizationCodeSuccess metric.Int64Counter
 }
 
-func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService, logger *zap.SugaredLogger, authorizationCodeInit metric.Int64Counter, authorizationCodeSuccess metric.Int64Counter) *AuthorizationService {
+func NewAuthorizationService(authorizationStore AuthorizationStore, codeStore CodeStore, clientService *ClientService, authorizationCodeInit metric.Int64Counter, authorizationCodeSuccess metric.Int64Counter) *AuthorizationService {
+	logger := slog.Default().With(slog.String("service", "authorization"))
+
 	return &AuthorizationService{
 		authorizationStore:       authorizationStore,
 		codeStore:                codeStore,
@@ -120,14 +122,14 @@ func (s *AuthorizationService) Authorize(ctx context.Context, request *Authoriza
 			ErrorType:   "server_error",
 		}
 	}
-	s.logger.Infow("Initialized 'authorization_code' flow", "authorizationId", stringUuid)
+	s.logger.Info("Initialized 'authorization_code' flow", "authorizationId", stringUuid)
 	s.authorizationCodeInit.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
 
 	return stringUuid, nil
 }
 
 func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) ResponseUriBuilder {
-	s.logger.Debugw("Continuing 'authorization_code' flow", "authorizationId", uuid)
+	s.logger.Debug("Continuing 'authorization_code' flow", "authorizationId", uuid)
 	store := s.authorizationStore.WithContext(ctx)
 	request, err := store.Get(uuid)
 	if err != nil {
@@ -156,7 +158,7 @@ func (s *AuthorizationService) Succeed(ctx context.Context, uuid string) Respons
 			ErrorType:   "server_error",
 		}
 	}
-	s.logger.Infow("Generated authorization code", "authroizationId", uuid)
+	s.logger.Info("Generated authorization code", "authroizationId", uuid)
 	s.authorizationCodeSuccess.Add(ctx, 1, metric.WithAttributes(attribute.Key("client_id").String(request.ClientId)))
 
 	return &AuthorizationResponse{

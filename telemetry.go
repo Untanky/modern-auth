@@ -1,11 +1,11 @@
 package main
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/metric"
-	"go.uber.org/zap"
 )
 
 type requestTelemetry struct {
@@ -13,10 +13,9 @@ type requestTelemetry struct {
 	errors       metric.Int64Counter
 	latency      metric.Int64Histogram
 	responseSize metric.Int64Histogram
-	logger       *zap.Logger
 }
 
-func newRequestTelemetry(meter metric.Meter, logger *zap.Logger) (*requestTelemetry, error) {
+func newRequestTelemetry(meter metric.Meter) (*requestTelemetry, error) {
 	requestsInstrument, err := meter.Int64Counter("requests")
 	if err != nil {
 		return nil, err
@@ -42,7 +41,6 @@ func newRequestTelemetry(meter metric.Meter, logger *zap.Logger) (*requestTeleme
 		errors:       errorsInstrument,
 		latency:      latencyInstrument,
 		responseSize: responseSizeInstrument,
-		logger:       logger,
 	}, nil
 }
 
@@ -70,23 +68,23 @@ func (r *requestTelemetry) handleTelemetry() gin.HandlerFunc {
 		// LOGGING
 		// create meta data fields for logging
 		msg := ""
-		fields := []zap.Field{
-			zap.String("method", c.Request.Method),
-			zap.String("path", path),
-			zap.String("ip", c.ClientIP()),
-			zap.Int("status", status),
-			zap.String("user-agent", c.Request.UserAgent()),
-			zap.Duration("latency", latency),
-			zap.Int("body-size", size),
-			zap.String("request-id", c.GetString("requestId")),
+		fields := []any{
+			slog.String("method", c.Request.Method),
+			slog.String("path", path),
+			slog.String("ip", c.ClientIP()),
+			slog.Int("status", status),
+			slog.String("user-agent", c.Request.UserAgent()),
+			slog.Duration("latency", latency),
+			slog.Int("body-size", size),
+			slog.String("request-id", c.GetString("requestId")),
 		}
 
 		// select logger func
-		var logFunc func(msg string, fields ...zap.Field)
+		var logFunc func(msg string, fields ...any)
 		if isError {
-			logFunc = r.logger.Error
+			logFunc = slog.Error
 		} else {
-			logFunc = r.logger.Debug
+			logFunc = slog.Debug
 		}
 
 		// actually log

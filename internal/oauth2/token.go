@@ -3,6 +3,7 @@ package oauth2
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 type TokenRequest interface {
@@ -79,11 +79,13 @@ type OAuthTokenService struct {
 	codeStore              CodeStore
 	accessTokenHandler     TokenHandler
 	refreshTokenHandler    TokenHandler
-	logger                 *zap.SugaredLogger
+	logger                 *slog.Logger
 	tokenRequestInstrument metric.Int64Counter
 }
 
-func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler, logger *zap.SugaredLogger, tokenRequestInstrument metric.Int64Counter) *OAuthTokenService {
+func NewOAuthTokenService(codeStore CodeStore, accessTokenHandler TokenHandler, refreshTokenHandler TokenHandler, tokenRequestInstrument metric.Int64Counter) *OAuthTokenService {
+	logger := slog.Default().With(slog.String("service", "oauth-token"))
+
 	return &OAuthTokenService{
 		codeStore:              codeStore,
 		accessTokenHandler:     accessTokenHandler,
@@ -97,7 +99,7 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 	// validate request
 	var grant *AuthorizationGrant
 	var err *TokenError
-	s.logger.Debugw("Handling token request")
+	s.logger.Debug("Handling token request")
 
 	switch actualRequest := request.(type) {
 	case *AuthorizationCodeTokenRequest:
@@ -112,7 +114,7 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 	}
 
 	if err != nil {
-		s.logger.Warnw("Token request failed", "err", err)
+		s.logger.Warn("Token request failed", "err", err)
 		return nil, err
 	}
 
@@ -123,16 +125,16 @@ func (s *OAuthTokenService) Token(ctx context.Context, request TokenRequest) (*T
 			ErrorDescription: "failed to generate access token",
 		}
 	}
-	s.logger.Debugw("Generated access token", "authorization_id", grant.ID)
+	s.logger.Debug("Generated access token", "authorization_id", grant.ID)
 
 	var refreshToken string
 	if grant.IssueRefreshToken {
 		refreshToken, e = s.refreshTokenHandler.GenerateToken(ctx, grant)
 		if e != nil {
-			s.logger.Warnw("Refresh token generation failed", "err", err, "authorization_id", grant.ID)
+			s.logger.Warn("Refresh token generation failed", "err", err, "authorization_id", grant.ID)
 			refreshToken = ""
 		} else {
-			s.logger.Debugw("Generated refresh token", "authorization_id", grant.ID)
+			s.logger.Debug("Generated refresh token", "authorization_id", grant.ID)
 		}
 	}
 	s.tokenRequestInstrument.Add(ctx, 1, metric.WithAttributes(attribute.Key("client_id").String(grant.ClientId), attribute.Key("grant_type").String(request.GetGrantType())))
@@ -183,7 +185,7 @@ func (s *OAuthTokenService) authorizationCodeToken(ctx context.Context, tokenReq
 		}
 	}
 
-	s.logger.Infow("Successfully validated 'authorization_code' token request",
+	s.logger.Info("Successfully validated 'authorization_code' token request",
 		"client_id", tokenRequest.ClientId,
 		"grant_type", "authorization_code",
 		"authorization_id", authorizationRequest.id,
@@ -223,7 +225,7 @@ func (s *OAuthTokenService) refreshToken(ctx context.Context, tokenRequest *Refr
 		}
 	}
 
-	s.logger.Infow("Successfully validated 'refresh_token' token request",
+	s.logger.Info("Successfully validated 'refresh_token' token request",
 		"client_id", tokenRequest.ClientId,
 		"grant_type", "refresh_token",
 		"authorization_id", grant.ID,
@@ -255,11 +257,13 @@ type TokenStore = core.KeyValueStore[string, *AuthorizationGrant]
 type RandomTokenHandler struct {
 	tokenSize       int
 	store           TokenStore
-	logger          *zap.SugaredLogger
+	logger          *slog.Logger
 	tokensGenerated metric.Int64Counter
 }
 
-func NewRandomTokenHandler(tokenSize int, store TokenStore, logger *zap.SugaredLogger, tokensGenerated metric.Int64Counter) *RandomTokenHandler {
+func NewRandomTokenHandler(tokenType string, tokenSize int, store TokenStore, tokensGenerated metric.Int64Counter) *RandomTokenHandler {
+	logger := slog.Default().With(slog.String("service", "token-handler"), slog.String("type", tokenType))
+
 	return &RandomTokenHandler{tokenSize: tokenSize, store: store, logger: logger, tokensGenerated: tokensGenerated}
 }
 
@@ -270,7 +274,7 @@ func (h *RandomTokenHandler) GenerateToken(ctx context.Context, grant *Authoriza
 	if err != nil {
 		return "", err
 	}
-	h.logger.Debugw("Generated randomized token", "authorization_id", grant.ID)
+	h.logger.Debug("Generated randomized token", "authorization_id", grant.ID)
 	h.tokensGenerated.Add(context.Background(), 1, metric.WithAttributes(attribute.Key("client_id").String(grant.ClientId)))
 	return token, nil
 }
@@ -281,7 +285,7 @@ func (h *RandomTokenHandler) Validate(ctx context.Context, token string) (*Autho
 	if err != nil {
 		return nil, err
 	}
-	h.logger.Debugw("Successfully validated token", "authorization_id", grant.ID)
+	h.logger.Debug("Successfully validated token", "authorization_id", grant.ID)
 	return grant, err
 }
 
