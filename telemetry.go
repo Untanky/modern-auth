@@ -79,15 +79,10 @@ func (r *requestTelemetry) handleTelemetry() gin.HandlerFunc {
 			slog.String("request-id", c.GetString("requestId")),
 		}
 
-		// select logger func
-		var logFunc func(msg string, fields ...any)
 		if isError {
-			logFunc = slog.Error
+			slog.Error(msg, fields...)
 		} else {
-			logFunc = slog.Debug
+			slog.Debug(msg, fields...)
 		}
-
-		// actually log
-		logFunc(msg, fields...)
 	}
 }

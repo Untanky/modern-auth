@@ -55,7 +55,9 @@ func init() {
 
 	otel.SetTracerProvider(tracerProvider)
 
-	slogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 	slog.SetDefault(slogger)
 
 	meterExporter, err := prometheus.New()
@@ -71,8 +73,19 @@ type entitiesKey string
 
 var EntitiesKey entitiesKey = "entities"
 
+type WriteFunc func([]byte) (int, error)
+
+func (fn WriteFunc) Write(data []byte) (int, error) {
+	return fn(data)
+}
+
 func (a *App) Start() {
 	slog.Info("Application initialization starting")
+
+	gin.DefaultWriter = WriteFunc(func(data []byte) (int, error) {
+		slog.Debug(string(data))
+		return 0, nil
+	})
 
 	a.db = a.connect()
 	a.migrateEntities([]interface{}{
