@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ExpandIcon from "../utils/ExpandIcon.svelte";
+  import ExpandIcon from "../../utils/ExpandIcon.svelte";
 import ScopeList from "./ScopeList.svelte";
   import type { ResourceServer } from "./models";
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Input from "../utils/Input.svelte";
+  import Input from "../../utils/Input.svelte";
 
   export let submit: () => void;
 </script>

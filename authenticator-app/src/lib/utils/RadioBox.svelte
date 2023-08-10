@@ -18,7 +18,7 @@
   aria-checked={open}
   tabindex={open ? -1 : 0}
   on:click={click}
-  on:keypress={click}
+  on:keypress={onKeyPress}
 >
   <slot />
 </div>

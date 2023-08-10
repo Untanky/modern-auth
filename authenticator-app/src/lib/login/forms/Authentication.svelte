@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Input from "../utils/Input.svelte";
-import RadioBox from "../utils/RadioBox.svelte";
-import RadioGroup from "../utils/RadioGroup.svelte";
+  import Input from "../../utils/Input.svelte";
+import RadioBox from "../../utils/RadioBox.svelte";
+import RadioGroup from "../../utils/RadioGroup.svelte";
 
   export let submit: () => void;
   export let userId: string;
