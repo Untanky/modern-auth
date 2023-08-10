@@ -1,8 +1,8 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { login, register } from '../lib/authentication';
-  import { initiateAuthentication } from '../lib/secure-client';
-  import { state } from '../lib/state';
+  import { login, register } from '../authentication';
+  import { initiateAuthentication } from '../secure-client';
+  import { state } from '../state';
   import AuthorizationProgress from './AuthenticationProgress.svelte';
   import Authentication from './forms/Authentication.svelte';
   import Authorization from './forms/Authorization.svelte';
