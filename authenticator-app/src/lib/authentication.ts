@@ -1,3 +1,4 @@
+import { storeTokens } from "./authorizationStore";
 import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./secure-client";
 import * as secureClient from './secure-client';
 
@@ -12,7 +13,7 @@ export const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(a
 export const register = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
   const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.register(credentialOptions.authenticationId, credential);
-  storeTokens({ accessToken, refreshToken  });
+  storeTokens({ accessToken, refreshToken, userId: '' });
 };
 
 const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKeyCredential> => {
@@ -31,7 +32,7 @@ const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKey
 export const login = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
   const credential = await getCredential(credentialOptions);
   const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.login(credentialOptions.authenticationId, credential);
-  storeTokens({ accessToken, refreshToken });
+  storeTokens({ accessToken, refreshToken, userId: '' });
 };
 
 const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCredential> => {
@@ -46,21 +47,4 @@ const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCred
       })),
     },
   }) as Promise<PublicKeyCredential>;
-};
-
-export const logout = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-}
-
-const getTokens = (): SuccessfulResponse => {
-  const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
-  
-  return { accessToken, refreshToken };
-};
-
-const storeTokens = (tokens: SuccessfulResponse): void => {
-  localStorage.setItem('accessToken', tokens.accessToken);
-  localStorage.setItem('refreshToken', tokens.refreshToken);
 };
