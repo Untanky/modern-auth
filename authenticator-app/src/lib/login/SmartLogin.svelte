@@ -53,7 +53,7 @@
 </script>
 
 <div class="flex justify-between items-center">
-  <h1 class="text-stone-950 dark:text-stone-50 text-2xl font-medium">
+  <h1>
     Login
   </h1>
   {#if $state.state === 'userId'}
