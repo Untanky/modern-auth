@@ -1,6 +1,7 @@
 import { readonly, writable } from "svelte/store";
-import { getAuthorizationState, type AuthorizationData } from "./local-store";
+import { getAuthorizationState, type AuthorizationData, setAuthorizationState } from "./local-store";
 import { refreshToken } from "$lib/secure-client";
+import { browser } from "$app/environment";
 
 class AuthorizationState implements AuthorizationData {
   accessToken: string;
@@ -34,22 +35,30 @@ class AuthorizationState implements AuthorizationData {
 const internalStore = writable<AuthorizationState | null>();
 
 export const initializeStoreLocally = () => {
+  if (!browser) {
+    return;
+  }
+
   const state = getAuthorizationState();
 
   const newState = state ? new AuthorizationState(state) : null;
 
   internalStore.set(newState);
-}
 
-internalStore.subscribe((state) => {
-  if (state && state.refreshToken) {
-    registerRefreshTimeout(state);
-  }
-})
+  internalStore.subscribe((state) => {
+    setAuthorizationState(state);
+  });
+
+  internalStore.subscribe((state) => {
+    if (state && state.refreshToken) {
+      registerRefreshTimeout(state);
+    }
+  });
+}
 
 const FRESH_UNTIL = 60_000;
 
-const registerRefreshTimeout = (state: Required<AuthorizationState>): NodeJS.Timeout => {
+const registerRefreshTimeout = (state: AuthorizationState): NodeJS.Timeout => {
   const timeRemaing = state.expiresAt - Date.now() - FRESH_UNTIL; 
   return setTimeout(() => state.refresh().then((state) => internalStore.set(state)), timeRemaing);
 }

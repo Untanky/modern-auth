@@ -6,11 +6,10 @@ export interface AuthorizationData {
   userId: string;
   expiresAt: number;
 }
-type AuthorizationState = AuthorizationData | null;
 
 const AUTH_KEY = 'auth_key';
 
-export const getAuthorizationState = (): AuthorizationState => {
+export const getAuthorizationState = (): AuthorizationData | null => {
   if (!browser) {
     return null;
   }
@@ -23,14 +22,15 @@ export const getAuthorizationState = (): AuthorizationState => {
   return JSON.parse(atob(rawData));
 };
 
-export const setAuthorizationState = (state: AuthorizationState): void => {
+export const setAuthorizationState = (state: AuthorizationData | null): void => {
   if (!browser) {
     throw new Error('Operation only supported on the user agent!');
   }
 
   if (!state) {
     localStorage.removeItem(AUTH_KEY);
+    return;
   }
 
-  localStorage.setItem(AUTH_KEY, btoa(JSON.stringify(localStorage)));
+  localStorage.setItem(AUTH_KEY, btoa(JSON.stringify(state)));
 }
