@@ -1,104 +1,78 @@
-import { storeTokens } from "$lib/authorizationStore";
-import { initiateAuthentication, login } from "$lib/secure-client";
-import { readonly, writable } from "svelte/store"; 
+import { readonly, writable } from 'svelte/store';
 
-abstract class AbstractState {
-  loading = false
-  error: Error | null = null;
-
-  async identified(userId: string, options: CredentialRequestOptions): Promise<AbstractState> {
-    throw new Error("Operation not supported");
-  }
-
-  async enteredPassword(password: string): Promise<AbstractState> {
-    throw new Error("Operation not supported");
-  }
-
-  async enteredOtp(otp: string): Promise<AbstractState> {
-    throw new Error("Operation not supported");
-  }
-
-  async validatedCredential(credential: PublicKeyCredential): Promise<AbstractState> {
-    throw new Error("Operation not supported");
-  }
+type IdentificationState = {
+  state: 'identification';
 }
 
-class IdentificationState extends AbstractState {
-  state = 'identification';
-
-  async identified(userId: string): Promise<AbstractState> {
-    this.loading = true;
-
-    try {
-      const options = await initiateAuthentication(userId);
-      return new CredentialState(userId, options);
-    } catch (e) {
-      this.error = e as Error;
-      return this;
-    } finally {
-      this.loading = false;
-    }
-  }
+type CredentialState = {
+  state: 'credential';
+  userId: string;
+  options: CredentialRequestOptions;
 }
 
-class CredentialState extends AbstractState {
-  state = 'credential';
-
-  constructor(public userId: string, public options: CredentialRequestOptions) {
-    super();
-  }
-
-  async enteredPassword(password: string): Promise<AbstractState> {
-    return new PasswordState(this.userId, this.options, password);
-  }
-
-  async validatedCredential(credential: PublicKeyCredential): Promise<AbstractState> {
-    const tokenResponse = await login('', credential);
-    storeTokens({
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      userId: this.userId,
-    });
-    
-    return new SuccessState(this.userId);
-  }
-}
-
-class PasswordState extends AbstractState {
-  state = 'password';
+type PasswordState = {
+  state: 'password';
+  userId: string;
+  password: string;
   otp?: string;
-
-  constructor(public userId: string, public options: CredentialRequestOptions, public password: string) {
-    super();
-  }
-
-  async enteredOtp(otp: string): Promise<AbstractState> {
-    this.otp = otp;
-    return this;
-  }
-
-  async validatedCredential(credential: PublicKeyCredential): Promise<AbstractState> {
-    const tokenResponse = await login('', credential);
-    storeTokens({
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      userId: this.userId,
-    });
-    
-    return new SuccessState(this.userId);
-  }
 }
 
-class SuccessState extends AbstractState {
-  state = 'success';
-
-  constructor(public userId: string) {
-    super();
-  }
+type AuthorizationState = {
+  state: 'authorization';
+  userId: string;
+  authorizationContext: any;
 }
 
-export type LoginState = IdentificationState | CredentialState | PasswordState | SuccessState;
+type SuccessState = {
+  state: 'success';
+  userId: string;
+}
 
-const internalState = writable<LoginState>(new IdentificationState);
+export type LoginState =
+  | IdentificationState
+  | CredentialState
+  | PasswordState
+  | AuthorizationState
+  | SuccessState;
+
+const internalState = writable<LoginState>({ state: 'identification' });
 
 export const state = readonly(internalState);
+
+type CreateCredentialState = {
+  state: 'createCredential';
+  userId: string;
+  options: CredentialCreationOptions;
+}
+
+type CreatePasswordState = {
+  state: 'createPassword';
+  userId: string;
+  options: CredentialCreationOptions;
+}
+
+type SetupOtpState = {
+  state: 'setupOtp';
+  userId: string;
+  options: CredentialCreationOptions;
+}
+
+type SetupProfile = {
+  state: 'setupProfile';
+  userId: string;
+}
+
+type SetupEmail = {
+  state: 'setupEmail';
+  userId: string;
+}
+
+export type RegistrationState = 
+  | IdentificationState 
+  | CreateCredentialState 
+  | CreatePasswordState 
+  | SetupOtpState 
+  | SetupProfile 
+  | SetupEmail 
+  | AuthorizationState
+  | SuccessState;
