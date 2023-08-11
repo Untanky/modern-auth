@@ -1,4 +1,5 @@
-import { readonly, writable } from "svelte/store";
+import { refreshToken } from "$lib/secure-client";
+import { readonly, writable, type Updater, get } from "svelte/store";
 
 interface AuthenticationData {
   accessToken: string;
@@ -6,43 +7,68 @@ interface AuthenticationData {
   userId: string;
 }
 
-const getAuthenticationStateOrNull = (): AuthenticationData | null => {
-  const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
-  const userId = localStorage.getItem('userId');
+const AUTH_KEY = 'auth_data';
 
-  if (!accessToken || !userId || !refreshToken) {
-    return null;
+const setAuthenticationData = (data: AuthenticationData | null): void => {
+  if (!data) {
+    localStorage.removeItem(AUTH_KEY);
+    return
   }
 
-  return {
-    accessToken,
-    refreshToken,
-    userId,
+  localStorage.setItem(AUTH_KEY, btoa(JSON.stringify(data)));
+};
+
+const getAuthenticationState = (): AuthentiationState => {
+  const rawData = localStorage.getItem(AUTH_KEY);
+
+  if (!rawData) {
+    return Promise.resolve(null);
   }
+
+  return Promise.resolve(JSON.parse(atob(rawData)));
 }
 
-const initialData = getAuthenticationStateOrNull();
+const initialData = getAuthenticationState();
 
-const state = writable<AuthenticationData | null>(initialData, () => {
+type AuthentiationState = Promise<AuthenticationData | null>;
 
+const state = writable<AuthentiationState>(initialData, (_, update) => {
+  const refresh: Updater<AuthentiationState> = (value) => {
+    return value.then(data => {
+      if (data && data.refreshToken) {
+        return refreshToken(data?.refreshToken)
+          .then(({ access_token, refresh_token }): AuthenticationData => ({
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            userId: data.userId,
+          }))
+          .catch(() => null);
+      }
+      return null;
+    })
+  };
+
+  update(refresh);
+
+  const intervalId = setInterval(() => {
+    update(refresh);
+  }, 60 * 60 * 1000, );
+
+  return () => {
+    clearInterval(intervalId);
+  }
+});
+
+state.subscribe((data) => {
+  data.then(setAuthenticationData);
 });
 
 export const onAuthenticated = (data: AuthenticationData): void => {
-  localStorage.set('accessToken', data.accessToken);
-  localStorage.set('userId', data.userId);
-  if (data.refreshToken) {
-    localStorage.set('refreshToken', data.refreshToken);
-  }
-
-  state.set(data);
+  state.set(Promise.resolve(data));
 };
 
 export const onLoggedOut = (): void => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-
-  state.set(null);
+  state.set(Promise.resolve(null));
 }
 
 export const authenticationState = readonly(state);
