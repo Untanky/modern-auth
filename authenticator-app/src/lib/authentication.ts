@@ -1,5 +1,4 @@
-import { storeTokens } from "./authorizationStore";
-import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./secure-client";
+import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from './secure-client';
 import * as secureClient from './secure-client';
 
 export interface SuccessfulResponse {
@@ -12,8 +11,7 @@ export const base64ToBuffer = (base64: string): ArrayBuffer => Uint8Array.from(a
 
 export const register = async (credentialOptions: MyCredentialCreationOptions): Promise<void> => {
   const credential = await createCredential(credentialOptions);
-  const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.register(credentialOptions.authenticationId, credential);
-  storeTokens({ accessToken, refreshToken, userId: '' });
+  await secureClient.register(credentialOptions.authenticationId, credential);
 };
 
 const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKeyCredential> => {
@@ -31,8 +29,7 @@ const createCredential = (credOps: CredentialCreationOptions): Promise<PublicKey
 
 export const login = async (credentialOptions: MyCredentialRequestOptions): Promise<void> => {
   const credential = await getCredential(credentialOptions);
-  const { access_token: accessToken, refresh_token: refreshToken } = await secureClient.login(credentialOptions.authenticationId, credential);
-  storeTokens({ accessToken, refreshToken, userId: '' });
+  await secureClient.login(credentialOptions.authenticationId, credential);
 };
 
 const getCredential = (credOps: CredentialRequestOptions): Promise<PublicKeyCredential> => {
