@@ -7,7 +7,7 @@ export interface AuthorizationData {
   expiresAt: number;
 }
 
-const AUTH_KEY = 'auth_key';
+const AUTH_KEY = 'auth';
 
 export const getAuthorizationState = (): AuthorizationData | null => {
   if (!browser) {

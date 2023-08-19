@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Input from "../../utils/Input.svelte";
+  import EmailForm from "$lib/forms/EmailForm.svelte";
 
   export let submit: () => void;
 </script>
@@ -11,15 +11,7 @@
   <p>
     Please enter email address.
   </p>
-  <Input
-    type="email"
-    value=""
-    placeholder="Your Email"
-    autocomplete="email"
-    onInput={() => {}}
-    id="email"
-    label="email"
-  />
+  <EmailForm />
   Select how we use your email:
   <ul>
     <li>

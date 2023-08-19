@@ -101,6 +101,43 @@
     @apply dark:bg-stone-900 dark:border-stone-600;
   }
 
+  .card-blue {
+    @apply bg-blue-200 border-blue-400 border-opacity-80 bg-opacity-60; 
+    @apply dark:bg-blue-800 dark:border-blue-600 dark:border-opacity-40 dark:bg-opacity-30;
+  }
+
+  .pill {
+    @apply px-2 py-0.5 text-sm font-normal rounded-full border;
+    @apply border-yellow-400 bg-yellow-200 text-yellow-950;
+    @apply dark:border-yellow-600 dark:bg-yellow-800 dark:text-yellow-50;
+  }
+
+  .pill-xs {
+    @apply px-2 py-0.5 text-xs rounded-full border;
+  }
+
+  .pill-sm {
+    @apply px-2 py-0.5 text-sm rounded-full border;
+  }
+
+  .pill-md {
+    @apply px-2 py-0.5 text-md rounded-full border;
+  }
+
+  .pill-lg {
+    @apply px-2 py-0.5 text-lg rounded-full border;
+  }
+
+  .pill-red {
+    @apply border-red-400 bg-red-200 text-red-950;
+    @apply dark:border-red-600 dark:bg-red-800 dark:text-red-50;
+  }
+
+  .pill-green {
+    @apply border-green-400 bg-green-200 text-green-950;
+    @apply dark:border-green-600 dark:bg-green-800 dark:text-green-50;
+  }
+
   .btn {
     /* layout */
     @apply inline-block px-4 py-2 rounded-lg;
@@ -108,6 +145,10 @@
     @apply bg-stone-500 text-stone-50 transition-colors duration-300;
     /* dark colors */
     @apply dark:bg-stone-400 dark:text-stone-950;
+  }
+
+  .btn-sm {
+    @apply text-sm px-3 py-1.5;
   }
 
   .btn-primary {
