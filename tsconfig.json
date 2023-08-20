@@ -1,0 +1,3 @@
+{
+	"extends": "./authenticator-app/tsconfig.json",
+}

@@ -1,72 +1,72 @@
 <script lang="ts">
-  import ResourceServerList from "../authorization/ResourceServerList.svelte";
-  import type { ResourceServer } from "../authorization/models";
+  import ResourceServerList from '../authorization/ResourceServerList.svelte';
+  import type { ResourceServer } from '../authorization/models';
 
   const resourceServers: ResourceServer[] = [
-    {
-      id: "resource-server-a",
-      title: "Resource Server A",
-      src: "/resource-server-a.png",
-      scopes: [
-        {
-          id: 'read-profile',
-          description: 'Read profile',
-        },
-        {
-          id: 'write-profile',
-          description: 'Write profile',
-        },
-      ]
-    },
-    {
-      id: "resource-server-b",
-      title: "Resource Server B",
-      src: "/resource-server-b.png",
-      scopes: [
-        {
-          id: 'cloud-storage',
-          description: 'Access and modify cloud storage',
-        },
-      ]
-    },
-    {
-      id: "resource-server-c",
-      title: "Resource Server C",
-      src: "/resource-server-c.png",
-      scopes: [
-        {
-          id: 'test',
-          description: 'Test application',
-        },
-        {
-          id: 'build',
-          description: 'Build application',
-        },
-        {
-          id: 'deploy',
-          description: 'Deploy application',
-        },
-      ]
-    }
-  ]
+      {
+          id: 'resource-server-a',
+          title: 'Resource Server A',
+          src: '/resource-server-a.png',
+          scopes: [
+              {
+                  id: 'read-profile',
+                  description: 'Read profile',
+              },
+              {
+                  id: 'write-profile',
+                  description: 'Write profile',
+              },
+          ],
+      },
+      {
+          id: 'resource-server-b',
+          title: 'Resource Server B',
+          src: '/resource-server-b.png',
+          scopes: [
+              {
+                  id: 'cloud-storage',
+                  description: 'Access and modify cloud storage',
+              },
+          ],
+      },
+      {
+          id: 'resource-server-c',
+          title: 'Resource Server C',
+          src: '/resource-server-c.png',
+          scopes: [
+              {
+                  id: 'test',
+                  description: 'Test application',
+              },
+              {
+                  id: 'build',
+                  description: 'Build application',
+              },
+              {
+                  id: 'deploy',
+                  description: 'Deploy application',
+              },
+          ],
+      },
+  ];
 
   export let submit: (scopes: string[]) => void;
 
   const onSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
+      event.preventDefault();
 
-    const formTarget = event.target as HTMLFormElement;
+      const formTarget = event.target as HTMLFormElement;
 
-    const filteredScopes = resourceServers
+      const filteredScopes = resourceServers
       // map resource servers to their scopes
-      .map((rs) => rs.scopes.map((s) => s.id))
+          .map((rs) => rs.scopes.map((s) => s.id))
       // flatten the array
-      .flat()
+          .flat()
       // filter out all scopes that are not checked
-      .filter((s) => formTarget.elements[s].checked);
-    
-    submit(filteredScopes);
-  }
+          .filter((s) => formTarget.elements[s].checked);
+
+      submit(filteredScopes);
+  };
 </script>
 
 <form class="flex flex-col flex-1 space-y-1" on:submit={onSubmit}>

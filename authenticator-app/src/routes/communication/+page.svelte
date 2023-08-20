@@ -1,8 +1,8 @@
 <script lang="ts">
-  import CardWithIcon from "$lib/CardWithIcon.svelte";
-  import Email from "$lib/login/icons/Email.svelte";
-  import Input from "$lib/utils/Input.svelte";
-  import type { PageServerData } from "./$types";
+  import CardWithIcon from '$lib/CardWithIcon.svelte';
+  import Email from '$lib/login/icons/Email.svelte';
+  import Input from '$lib/utils/Input.svelte';
+  import type { PageServerData } from './$types';
 
   export let data: PageServerData;
 </script>
@@ -58,6 +58,8 @@
     </section>
   </CardWithIcon>
   <p class="card mt-2 card-blue">
-    The information you enter here, will <em>never be shared with third parties</em>. The email entered here is only used for communication relating to you account, such as account recovery.
+    The information you enter here, will <em>never be shared with
+      third parties</em>. The email entered here is only used for
+      communication relating to you account, such as account recovery.
   </p>
 </main>

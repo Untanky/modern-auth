@@ -1,4 +1,4 @@
-import { browser } from "$app/environment";
+import { browser } from '$app/environment';
 
 export interface AuthorizationData {
   accessToken: string;
@@ -10,27 +10,27 @@ export interface AuthorizationData {
 const AUTH_KEY = 'auth';
 
 export const getAuthorizationState = (): AuthorizationData | null => {
-  if (!browser) {
-    return null;
-  }
+    if (!browser) {
+        return null;
+    }
 
-  const rawData = localStorage.getItem(AUTH_KEY);
-  if (!rawData) {
-    return null;
-  }
+    const rawData = localStorage.getItem(AUTH_KEY);
+    if (!rawData) {
+        return null;
+    }
 
-  return JSON.parse(atob(rawData));
+    return JSON.parse(atob(rawData));
 };
 
 export const setAuthorizationState = (state: AuthorizationData | null): void => {
-  if (!browser) {
-    throw new Error('Operation only supported on the user agent!');
-  }
+    if (!browser) {
+        throw new Error('Operation only supported on the user agent!');
+    }
 
-  if (!state) {
-    localStorage.removeItem(AUTH_KEY);
-    return;
-  }
+    if (!state) {
+        localStorage.removeItem(AUTH_KEY);
+        return;
+    }
 
-  localStorage.setItem(AUTH_KEY, btoa(JSON.stringify(state)));
-}
+    localStorage.setItem(AUTH_KEY, btoa(JSON.stringify(state)));
+};

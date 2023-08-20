@@ -1,10 +1,11 @@
 <script lang="ts">
-  import type { Scope } from "./models";
+  import type { Scope } from './models';
 
   export let scope: Scope;
 
   let value = true;
-
+  
+  // eslint-disable-next-line prefer-destructuring
   $: id = scope.id;
 </script>
 

@@ -1,74 +1,79 @@
-import { readonly, writable } from "svelte/store";
-import { getAuthorizationState, type AuthorizationData, setAuthorizationState } from "./local-store";
-import { refreshToken } from "$lib/secure-client";
-import { browser } from "$app/environment";
+import { readonly, writable } from 'svelte/store';
+import {
+    type AuthorizationData, getAuthorizationState, setAuthorizationState,
+} from './local-store';
+import { refreshToken } from '$lib/secure-client';
+import { browser } from '$app/environment';
 
 class AuthorizationState implements AuthorizationData {
-  accessToken: string;
-  refreshToken?: string;
-  userId: string;
-  expiresAt: number;
-  
-  constructor({ accessToken, refreshToken, userId, expiresAt }: AuthorizationData) {
-    this.accessToken = accessToken;
-    this.refreshToken = refreshToken;
-    this.userId = userId;
-    this.expiresAt = expiresAt;
-  }
+    accessToken: string;
+    refreshToken?: string;
+    userId: string;
+    expiresAt: number;
 
-  refresh(): Promise<AuthorizationState | null> {
-    if (!this.refreshToken) {
-      return Promise.resolve(null);
+    constructor({
+        accessToken, refreshToken, userId, expiresAt,
+    }: AuthorizationData) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.userId = userId;
+        this.expiresAt = expiresAt;
     }
 
-    return refreshToken(this.refreshToken)
-      .then(({ access_token, refresh_token, expires_in }): AuthorizationState => new AuthorizationState({
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresAt: Date.now() + expires_in,
-        userId: this.userId,
-      }))
-      .catch(() => null)
-  }
+    refresh(): Promise<AuthorizationState | null> {
+        if (!this.refreshToken) {
+            return Promise.resolve(null);
+        }
+
+        return refreshToken(this.refreshToken)
+            .then(({
+                access_token, refresh_token, expires_in,
+            }): AuthorizationState => new AuthorizationState({
+                accessToken: access_token,
+                refreshToken: refresh_token,
+                expiresAt: Date.now() + expires_in,
+                userId: this.userId,
+            }))
+            .catch(() => null);
+    }
 }
 
 const internalStore = writable<AuthorizationState | null>();
 
 export const initializeStoreLocally = () => {
-  if (!browser) {
-    return;
-  }
-
-  const state = getAuthorizationState();
-
-  const newState = state ? new AuthorizationState(state) : null;
-
-  internalStore.set(newState);
-
-  internalStore.subscribe((state) => {
-    setAuthorizationState(state);
-  });
-
-  internalStore.subscribe((state) => {
-    if (state && state.refreshToken) {
-      registerRefreshTimeout(state);
+    if (!browser) {
+        return;
     }
-  });
-}
+
+    const state = getAuthorizationState();
+    const newState = state ? new AuthorizationState(state) : null;
+
+    internalStore.set(newState);
+
+    internalStore.subscribe((state) => {
+        setAuthorizationState(state);
+    });
+
+    internalStore.subscribe((state) => {
+        if (state && state.refreshToken) {
+            registerRefreshTimeout(state);
+        }
+    });
+};
 
 const FRESH_UNTIL = 60_000;
 
 const registerRefreshTimeout = (state: AuthorizationState): NodeJS.Timeout => {
-  const timeRemaing = state.expiresAt - Date.now() - FRESH_UNTIL; 
-  return setTimeout(() => state.refresh().then((state) => internalStore.set(state)), timeRemaing);
-}
+    const timeRemaing = state.expiresAt - Date.now() - FRESH_UNTIL;
+    return setTimeout(() => state.refresh().then((state) => internalStore.set(state)), timeRemaing);
+};
 
 export const afterAuthentication = (data: AuthorizationData): void => {
-  internalStore.set(new AuthorizationState(data));
-}
+    internalStore.set(new AuthorizationState(data));
+};
 
 export const afterLogout = (): void => {
-  internalStore.set(null);
-}
+    internalStore.set(null);
+};
 
-export const authorizationStore = readonly<AuthorizationData | null>(internalStore); 
+export const authorizationStore = readonly<AuthorizationData | null>(internalStore);

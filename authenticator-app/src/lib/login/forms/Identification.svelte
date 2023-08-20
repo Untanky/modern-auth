@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Input from "../../utils/Input.svelte";
+  import Input from '../../utils/Input.svelte';
 
   export let submit: (userId: string) => void;
 
@@ -8,16 +8,19 @@
   $: canSubmit = userId.length > 0;
 
   const onClick = (event: SubmitEvent) => {
-    event.preventDefault();
+      event.preventDefault();
 
-    submit(event.target[0].value);
-  }
+      const formElement = event.target as HTMLFormElement;
+      const inputElement = formElement[0] as HTMLInputElement;
+
+      submit(inputElement.value);
+  };
 
   const onChangeUserId = (event: Event): void => {
-    const input = event.target as HTMLInputElement;
+      const input = event.target as HTMLInputElement;
 
-    userId = input.value;
-  }
+      userId = input.value;
+  };
 </script>
 
 <form class="flex flex-col flex-1" on:submit={onClick}>

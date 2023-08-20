@@ -1,14 +1,14 @@
 <script lang="ts">
   let clazz = '';
-  
+
   export { clazz as class };
   export let open = false;
   export let click: () => void;
 
   const onKeyPress = (event: KeyboardEvent) => {
-    if (event.key === 'Space' || event.key === 'Enter') {
-      click();
-    }
+      if (event.key === 'Space' || event.key === 'Enter') {
+          click();
+      }
   };
 </script>
 

@@ -1,5 +1,5 @@
-import { writable } from "svelte/store";
-import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from "./secure-client";
+import { writable } from 'svelte/store';
+import type { MyCredentialCreationOptions, MyCredentialRequestOptions } from './secure-client';
 
 export type AuthorizationState = 'userId' | 'createCredential' | 'getCredential' | 'success';
 
@@ -27,7 +27,7 @@ type authorizationStateType = {
 };
 
 export const state = writable<authorizationStateType>({
-  state: 'userId',
-  loading: false,
-  error: null,
+    state: 'userId',
+    loading: false,
+    error: null,
 });

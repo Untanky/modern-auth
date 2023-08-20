@@ -1,9 +1,9 @@
 <script lang="ts">
-  import ResourceServer from "./ResourceServer.svelte";
-  import type { ResourceServer as ResourceServerType } from "./models";
+  import ResourceServer from './ResourceServer.svelte';
+  import type { ResourceServer as ResourceServerType } from './models';
 
   export let resourceServers: ResourceServerType[];
-  let klass: string = "";
+  let klass: string = '';
   export { klass as class };
 </script>
 

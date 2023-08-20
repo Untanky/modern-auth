@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Input from "../../utils/Input.svelte";
-import RadioBox from "../../utils/RadioBox.svelte";
-import RadioGroup from "../../utils/RadioGroup.svelte";
+  import Input from '../../utils/Input.svelte';
+import RadioBox from '../../utils/RadioBox.svelte';
+import RadioGroup from '../../utils/RadioGroup.svelte';
 
   export let submit: () => void;
   export let userId: string;
@@ -11,15 +11,16 @@ import RadioGroup from "../../utils/RadioGroup.svelte";
   let password = '';
 
   const onSubmit = (event: SubmitEvent) => {
-    event.preventDefault();
+      event.preventDefault();
 
-    submit();
-  }
+      submit();
+  };
 
   const onChangePassword = (event: Event): void => {
-    const input = event.target as HTMLInputElement;
+      const input = event.target as HTMLInputElement;
 
-    password = input.value;
+      password = input.value;
+      return;
   };
 </script>
 
@@ -41,12 +42,16 @@ import RadioGroup from "../../utils/RadioGroup.svelte";
   <RadioGroup class="space-y-4">
     <RadioBox
       open={method === 'public-key'}
-      click={() => method = 'public-key'}
+      click={() => {
+          method = 'public-key';
+      }}
     >
       <h3 class="text-lg">Biometric or physical authentication</h3>
       <div class="{method === 'public-key' ? '' : 'hidden'} flex flex-col">
         <p>
-          When you click on authenticate a system dialog will open and ask you to authenticate with your biometric data or a physical hardware token. Please prepare for the method chosen when setting up this device.
+          When you click on authenticate a system dialog will open and ask you
+          to authenticate with your biometric data or a physical hardware token.
+          Please prepare for the method chosen when setting up this device.
         </p>
         <button type="submit" class="self-end mt-2 btn btn-primary">
           Authenticate
@@ -55,7 +60,9 @@ import RadioGroup from "../../utils/RadioGroup.svelte";
     </RadioBox>
     <RadioBox
       open={method === 'password'}
-      click={() => method = 'password'}
+      click={() => {
+          method = 'password';
+      }}
     >
       <h3 class="text-lg">Password authentication</h3>
       <div class="{method === 'password' ? '' : 'hidden'} flex flex-col">
@@ -72,7 +79,7 @@ import RadioGroup from "../../utils/RadioGroup.svelte";
         />
         <button type="submit" class="self-end mt-2 btn btn-primary">
           Continue
-        </button>  
+        </button>
       </div>
     </RadioBox>
   </RadioGroup>

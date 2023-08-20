@@ -5,9 +5,10 @@ type TemplateResult = {
   subject: string;
 };
 
-export const renderTemplate = (template: Template): TemplateResult => {  
-  return {
-    body: '',
-    subject: '',
-  }
+export const renderTemplate = (template: Template): TemplateResult => {
+    template.firstName = '';
+    return {
+        body: '',
+        subject: '',
+    };
 };

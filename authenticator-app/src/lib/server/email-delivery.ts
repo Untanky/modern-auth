@@ -14,10 +14,10 @@ type EmailResponse = {
 }
 
 export const sendEmail = (params: EmailDeliverable): Promise<EmailResponse> => {
-  return resend.sendEmail({
-    from: 'lukaskingsmail@gmail.com',
-    to: params.to,
-    html: params.body,
-    subject: params.subject,
-  });
+    return resend.sendEmail({
+        from: 'lukaskingsmail@gmail.com',
+        to: params.to,
+        html: params.body,
+        subject: params.subject,
+    });
 };

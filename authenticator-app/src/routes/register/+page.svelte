@@ -1,7 +1,7 @@
 <script>
 
-  import CardWithIcon from "$lib/CardWithIcon.svelte";
-  import Identification from "$lib/login/icons/Identification.svelte";
+  import CardWithIcon from '$lib/CardWithIcon.svelte';
+  import Identification from '$lib/login/icons/Identification.svelte';
 
 </script>
 

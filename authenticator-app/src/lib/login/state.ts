@@ -67,12 +67,12 @@ type SetupEmail = {
   userId: string;
 }
 
-export type RegistrationState = 
-  | IdentificationState 
-  | CreateCredentialState 
-  | CreatePasswordState 
-  | SetupOtpState 
-  | SetupProfile 
-  | SetupEmail 
+export type RegistrationState =
+  | IdentificationState
+  | CreateCredentialState
+  | CreatePasswordState
+  | SetupOtpState
+  | SetupProfile
+  | SetupEmail
   | AuthorizationState
   | SuccessState;

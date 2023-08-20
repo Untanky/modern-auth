@@ -10,45 +10,80 @@
   import Registration from './forms/Registration.svelte';
 
   const onInitiateAuthentication = (userId: string): void => {
-    state.update(state => ({ ...state, loading: true } ));
+      state.update((state) => ({
+          ...state,
+          loading: true,
+      } ));
 
-    initiateAuthentication(userId)
-      .then((ops) => {
-        if (ops.type === 'create') {
-          state.update(oldState => ({ ...oldState, state: 'createCredential', userId, credentialOptions: ops, loading: false }));
-        } else {
-          state.update(oldState => ({ ...oldState, state: 'getCredential', userId, credentialOptions: ops, loading: false }));
-        }
-      })
-      .catch((err) => {
-        state.update(oldState => ({ ...oldState, error: err, loading: false }));
-      });
+      initiateAuthentication(userId)
+          .then((ops) => {
+              if (ops.type === 'create') {
+                  state.update((oldState) => ({
+                      ...oldState,
+                      state: 'createCredential',
+                      userId,
+                      credentialOptions: ops,
+                      loading: false,
+                  }));
+              } else {
+                  state.update((oldState) => ({
+                      ...oldState,
+                      state: 'getCredential',
+                      userId,
+                      credentialOptions: ops,
+                      loading: false,
+                  }));
+              }
+          })
+          .catch((err: Error) => {
+              state.update((oldState) => ({
+                  ...oldState,
+                  error: err,
+                  loading: false,
+              }));
+          });
   };
 
   const onCreateCredential = (): void => {
-    const localState = get(state);
-    if (localState.state !== 'createCredential') {
-      return;
-    }
+      const localState = get(state);
+      if (localState.state !== 'createCredential') {
+          return;
+      }
 
-    register(localState.credentialOptions).then(() => {
-      state.update(oldState => ({ ...oldState, state: 'success' } as any));
-    }).catch((err) => {
-      state.update(oldState => ({ ...oldState, error: err }));
-    });
+      register(localState.credentialOptions)
+          .then(() => {
+              state.update((oldState) => ({
+                  ...oldState,
+                  state: 'success',
+              } as any));
+          })
+          .catch((err: Error) => {
+              state.update((oldState) => ({
+                  ...oldState,
+                  error: err,
+              }));
+          });
   };
 
   const onGetCredential = (): void => {
-    const localState = get(state);
-    if (localState.state !== 'getCredential') {
-      return;
-    }
+      const localState = get(state);
+      if (localState.state !== 'getCredential') {
+          return;
+      }
 
-    login(localState.credentialOptions).then(() => {
-      state.update(oldState => ({ ...oldState, state: 'success' } as any));
-    }).catch((err) => {
-      state.update(oldState => ({ ...oldState, error: err }));
-    });
+      login(localState.credentialOptions)
+          .then(() => {
+              state.update((oldState) => ({
+                  ...oldState,
+                  state: 'success',
+              } as any));
+          })
+          .catch((err: Error) => {
+              state.update((oldState) => ({
+                  ...oldState,
+                  error: err,
+              }));
+          });
   };
 </script>
 
@@ -59,7 +94,7 @@
   {#if $state.state === 'userId'}
   <a
     class="text-yellow-500 dark:text-yellow-400 underline rounded"
-    href="#"
+    href="#foo"
   >
     Register instead
   </a>

@@ -1,6 +1,6 @@
 <script lang="ts">
   export let open = true;
-  let clazz = "";
+  let clazz = '';
   export { clazz as class };
 </script>
 

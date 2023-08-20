@@ -1,14 +1,14 @@
 <script>
-  import { browser } from "$app/environment";
-  import Footer from "$lib/Footer.svelte";
-  import { initializeStoreLocally } from "$lib/authorization/store";
-  import { onMount } from "svelte";
-  import "../app.postcss";
+  import { browser } from '$app/environment';
+  import Footer from '$lib/Footer.svelte';
+  import { initializeStoreLocally } from '$lib/authorization/store';
+  import { onMount } from 'svelte';
+  import '../app.postcss';
 
   onMount(() => {
-    if (browser) {
-      initializeStoreLocally();
-    }
+      if (browser) {
+          initializeStoreLocally();
+      }
   });
 </script>
 
