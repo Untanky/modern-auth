@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { Email, EmailRepository, Template } from './email.model';
-import type * as schema from './schema';
+import * as schema from './schema';
 import { email, resendEmail } from './schema';
 
 export class DrizzleEmailRepository implements EmailRepository {

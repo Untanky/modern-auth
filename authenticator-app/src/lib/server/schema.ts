@@ -6,6 +6,8 @@ export const emailSchema = pgSchema('email');
 export const preference = emailSchema.table('preference', {
   sub: uuid('sub').primaryKey().defaultRandom(),
   emailAddress: varchar('email_address').notNull(),
+  verified: boolean('verified').notNull(),
+  verifiedAt: timestamp('verified_at'),
   allowAccountReset: boolean('allow_account_reset').default(true).notNull(),
   allowSessionNotification: boolean('allow_session_notification').default(false).notNull(),
 });

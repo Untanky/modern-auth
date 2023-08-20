@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "d69a4517-1841-43b3-bf81-4968aff18b6d",
+  "id": "b2e0916d-aa2e-4aa7-b83d-8bd9f5ece7c4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "email": {
@@ -69,6 +69,18 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "allow_account_reset": {
           "name": "allow_account_reset",

@@ -40,8 +40,8 @@ export interface Email {
 
 export interface Preferences {
   readonly sub: string;
-  email: string;
-  verified: string;
+  emailAddress: string;
+  verified: boolean;
   verifiedAt?: Date;
   allowAccountReset: boolean;
   allowSessionNotification: boolean;

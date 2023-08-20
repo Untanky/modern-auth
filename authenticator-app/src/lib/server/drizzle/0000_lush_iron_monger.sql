@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS "email"."email" (
 CREATE TABLE IF NOT EXISTS "email"."preference" (
 	"sub" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email_address" varchar NOT NULL,
+	"verified" boolean NOT NULL,
+	"verified_at" timestamp,
 	"allow_account_reset" boolean DEFAULT true NOT NULL,
 	"allow_session_notification" boolean DEFAULT false NOT NULL
 );
