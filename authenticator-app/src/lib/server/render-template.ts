@@ -1,4 +1,4 @@
-import type { Template } from "./email.model";
+import type { Template } from './email.model';
 
 type TemplateResult = {
   body: string;
