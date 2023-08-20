@@ -55,5 +55,8 @@ interface Repository<Type> {
   delete(where: Partial<Type>): Promise<void>;
 }
 
-export type EmailRepository = Repository<Email>;
+export interface EmailRepository extends Repository<Email> {
+  create(entity: Required<Email>): Promise<Email>;
+}
+
 export type PreferencesRepository = Repository<Preferences>;
