@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { boolean, pgEnum, pgSchema, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 export const emailSchema = pgSchema('email');
@@ -22,3 +23,10 @@ export const resendEmail = emailSchema.table('resend_email', {
   id: uuid('id').primaryKey().references(() => email.id, { onDelete: 'cascade' }),
   resendId: varchar('resend_id').notNull().unique(),
 });
+
+export const emailResendEmailRelation = relations(email, ({ one }) => ({
+  resendEmail: one(resendEmail, {
+    fields: [email.id],
+    references: [resendEmail.id],
+  }),
+}));

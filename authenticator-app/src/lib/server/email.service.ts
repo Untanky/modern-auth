@@ -8,7 +8,7 @@ export class EmailService {
   
   constructor(emailRepository: EmailRepository, preferencesRepository: PreferencesRepository) {
     this.emailRepo = emailRepository;
-    this. preferencesRepo = preferencesRepository;
+    this.preferencesRepo = preferencesRepository;
   }
   
   async send(email: Email): Promise<Pick<Email, 'id'>> {
