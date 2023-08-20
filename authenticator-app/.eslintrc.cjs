@@ -14,6 +14,7 @@ module.exports = {
         project: ['./tsconfig.json'],
     },
     ignorePatterns: [
+        '.eslintrc.cjs',
         'src/app.html',
         'src/app.postcss',
         'src/lib/server/drizzle/**'
