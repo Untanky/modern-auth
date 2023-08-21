@@ -4,7 +4,7 @@ import type {
 } from './email.model';
 import { renderTemplate } from './render-template';
 
-type EmailWithCompleteTemplate = Email & { template: Template }
+export type EmailWithCompleteTemplate = Email & { template: Template }
 
 export class EmailService {
     private readonly emailRepo: EmailRepository;
