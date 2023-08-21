@@ -1,29 +1,35 @@
 type verificationTemplate = {
   readonly type: 'verification';
   readonly sub: string;
-  doiLink: string;
-  userName?: string;
-  firstName?: string;
-  lastName?: string;
+  readonly props: {
+      doiLink: string;
+      userName?: string;
+      firstName?: string;
+      lastName?: string;
+  };
 }
 
 type accountResetTemplate = {
   readonly type: 'accountReset';
   readonly sub: string;
-  resetLink: string;
-  userName?: string;
-  firstName?: string;
-  lastName?: string;
+  readonly props: {
+      resetLink: string;
+      userName?: string;
+      firstName?: string;
+      lastName?: string;
+  };
 }
 
 type sessionNotificationTemplate = {
   readonly type: 'sessionNotification';
   readonly sub: string;
-  loginTime: string;
-  loginLocation: string;
-  userName?: string;
-  firstName?: string;
-  lastName?: string;
+  readonly props: {
+      loginTime: string;
+      loginLocation: string;
+      userName?: string;
+      firstName?: string;
+      lastName?: string;
+  };
 }
 
 export type Template = verificationTemplate | accountResetTemplate | sessionNotificationTemplate;
