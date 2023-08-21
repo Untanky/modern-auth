@@ -1,14 +1,16 @@
-import type { Template } from './email.model';
+import { render } from 'svelte-email';
+import Verification from './templates/Verification.svelte';
 
 type TemplateResult = {
   body: string;
   subject: string;
 };
 
-export const renderTemplate = (template: Template): TemplateResult => {
-    template.firstName = '';
+export const renderTemplate = (): TemplateResult => {
+    const body = render({ template: Verification, props: { name: 'Lukas', verificationLink: 'http://localhost:3000/' } });
+
     return {
-        body: 'Hello Lukas, this is a test body. Yours Lukas',
+        body,
         subject: 'TEST EMAIL',
     };
 };
