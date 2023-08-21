@@ -10,12 +10,15 @@ type TemplateResult = {
   subject: string;
 };
 
+type TemplatePropsOf<Type extends TemplateTypes> = Extract<Template, { type: Type }>['props'];
+type ComponentOf<Type extends TemplateTypes> = ComponentType<SvelteComponent<TemplatePropsOf<Type>>>
+
 type TemplateToComponentsMapping = {
-    [T in TemplateTypes]: ComponentType<SvelteComponent<Extract<Template, { type: T }>['props']>>;
+    [T in TemplateTypes]: ComponentOf<T>;
 };
 
 type TemplateToSubjectMapping = {
-    [T in TemplateTypes]: (props?: Extract<Template, { type: T }>['props']) => string;
+    [T in TemplateTypes]: (props?: TemplatePropsOf<T>) => string;
 }
 
 const templateToComponents = {
@@ -31,7 +34,7 @@ const templateToSubjectMapping = {
 } satisfies TemplateToSubjectMapping;
 
 export const renderTemplate = ({ type, props }: Template): TemplateResult => {
-    const template = templateToComponents[type] as ComponentType;
+    const template = templateToComponents[type] as ComponentOf<typeof type>;
     const body = render({ template, props });
     const subject = templateToSubjectMapping[type]();
 

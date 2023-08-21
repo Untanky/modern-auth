@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Button, Container, Html, Link, Text } from 'svelte-email';
+  import Salutation from './components/Salutation.svelte';
     export let userName: string = '';
     export let firstName: string = '';
     export let lastName: string = '';
@@ -8,9 +9,7 @@
 
 <Html lang="en">
     <Container>
-        <Text>
-            Hello {userName},
-        </Text>
+        <Salutation userName={userName} firstName={firstName} lastName={lastName} />
         <Text>
             your email has been used to register for ModernAuth. To verify you email please click on the button.
         </Text>

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Container, Html, Text } from 'svelte-email';
+    import { Container, Html } from 'svelte-email';
+    import Salutation from './components/Salutation.svelte';
     export let userName: string = '';
     export let firstName: string = '';
     export let lastName: string = '';
@@ -8,8 +9,6 @@
 
 <Html lang="en">
     <Container>
-        <Text>
-            Hello {userName},
-        </Text>
+        <Salutation userName={userName} firstName={firstName} lastName={lastName} />
     </Container>
 </Html>
