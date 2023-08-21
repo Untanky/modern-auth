@@ -13,9 +13,9 @@ type EmailResponse = {
   id: string;
 }
 
-export const sendEmail = (params: EmailDeliverable): Promise<EmailResponse> => {
+export const sendEmail = async (params: EmailDeliverable): Promise<EmailResponse> => {
     return resend.sendEmail({
-        from: 'lukaskingsmail@gmail.com',
+        from: 'example@lukasgrimm.me',
         to: params.to,
         html: params.body,
         subject: params.subject,

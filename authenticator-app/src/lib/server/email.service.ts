@@ -14,22 +14,27 @@ export class EmailService {
     }
 
     async send(email: Email): Promise<Pick<Email, 'id'>> {
-        const preferences = await this.preferencesRepo.findFirst({ sub: email.sub });
+        // const preferences = await this.preferencesRepo.findFirst({ sub: email.sub });
         const { body, subject } = renderTemplate(email.template);
 
         const { id: resendId } = await sendEmail({
-            to: preferences.emailAddress,
+            to: 'lukaskingsmail@gmail.com',
             body,
             subject: subject,
         });
 
-        const createdEmail = await this.emailRepo.create({
-            ...email,
-            id: '',
-            sentAt: new Date(),
-            resendId,
-        });
+        try {
+            const createdEmail = await this.emailRepo.create({
+                ...email,
+                id: '',
+                sentAt: new Date(),
+                resendId,
+            });
+            return { id: createdEmail.id };
+        } catch (e) {
+            console.error(e);
+            return { id: 'foo' };
+        }
 
-        return { id: createdEmail.id };
     }
 }

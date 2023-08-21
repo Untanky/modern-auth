@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+/* eslint-disable newline-per-chained-call */
 import {
     boolean, pgEnum, pgSchema, timestamp, uuid, varchar,
 } from 'drizzle-orm/pg-core';
@@ -24,23 +24,13 @@ export const templates = pgEnum('templates_enum', [
 ]);
 
 export const email = emailSchema.table('email', {
-    id: uuid('id').primaryKey()
-        .defaultRandom(),
+    id: uuid('id').primaryKey().defaultRandom(),
     sub: uuid('sub').references(() => preference.sub, { onDelete: 'set null' }),
     sentAt: timestamp('sent_at').notNull(),
     template: templates('template').notNull(),
 });
 
 export const resendEmail = emailSchema.table('resend_email', {
-    id: uuid('id').primaryKey()
-        .references(() => email.id, { onDelete: 'cascade' }),
-    resendId: varchar('resend_id').notNull()
-        .unique(),
+    id: uuid('id').primaryKey().references(() => email.id, { onDelete: 'cascade' }),
+    resendId: varchar('resend_id').notNull().unique(),
 });
-
-export const emailResendEmailRelation = relations(email, ({ one }) => ({
-    resendEmail: one(resendEmail, {
-        fields: [email.id],
-        references: [resendEmail.id],
-    }),
-}));
