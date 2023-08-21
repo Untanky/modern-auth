@@ -1,8 +1,10 @@
 import { sendEmail } from './email-delivery';
 import type {
-    Email, EmailRepository, PreferencesRepository,
+    Email, EmailRepository, PreferencesRepository, Template,
 } from './email.model';
 import { renderTemplate } from './render-template';
+
+type EmailWithCompleteTemplate = Email & { template: Template }
 
 export class EmailService {
     private readonly emailRepo: EmailRepository;
@@ -13,28 +15,29 @@ export class EmailService {
         this.preferencesRepo = preferencesRepository;
     }
 
-    async send(email: Email): Promise<Pick<Email, 'id'>> {
-        // const preferences = await this.preferencesRepo.findFirst({ sub: email.sub });
+    async send(email: EmailWithCompleteTemplate): Promise<Pick<Email, 'id'>> {
         const { body, subject } = renderTemplate(email.template);
 
-        const { id: resendId } = await sendEmail({
-            to: 'lukaskingsmail@gmail.com',
-            body,
-            subject: subject,
-        });
+        const { emailAddress } = await this.preferencesRepo.findFirst({ sub: email.sub });
 
+        const resend = await sendEmail({
+            to: emailAddress, body, subject,
+        });
+        return this.saveEmailInDB(email, resend);
+    }
+
+    private async saveEmailInDB(email: Email, resend: { id: string }): Promise<{ id: string }> {
         try {
             const createdEmail = await this.emailRepo.create({
                 ...email,
                 id: '',
                 sentAt: new Date(),
-                resendId,
+                resendId: resend.id,
             });
             return { id: createdEmail.id };
         } catch (e) {
             console.error(e);
-            return { id: 'foo' };
+            return { id: '' };
         }
-
     }
 }

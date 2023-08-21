@@ -34,6 +34,9 @@ const templateToSubjectMapping = {
 } satisfies TemplateToSubjectMapping;
 
 export const renderTemplate = ({ type, props }: Template): TemplateResult => {
+    if (!props) {
+        throw new Error('props must exist');
+    }
     const template = templateToComponents[type] as ComponentOf<typeof type>;
     const body = render({ template, props });
     const subject = templateToSubjectMapping[type]();

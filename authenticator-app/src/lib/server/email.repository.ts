@@ -25,10 +25,7 @@ export class DrizzleEmailRepository implements EmailRepository {
                 return {
                     id: result.email.id,
                     sub: result.email.sub || '',
-                    template: {
-                        type: result.email.template,
-                        sub: result.email.sub || '',
-                    } as Template,
+                    template: { type: result.email.template } as Template,
                     sentAt: result.email.sentAt,
                     deliveryMethod: 'resend',
                     resendId: result.resend_email.resendId,
@@ -44,10 +41,7 @@ export class DrizzleEmailRepository implements EmailRepository {
         }).then((results) => results.map((result) => ({
             id: result.id,
             sub: result.sub || '',
-            template: {
-                type: result.template,
-                sub: result.sub || '',
-            } as Template,
+            template: { type: result.template } as Template,
             sentAt: result.sentAt,
             deliveryMethod: 'resend',
             resendId: '', // FIXME: set correct resendId

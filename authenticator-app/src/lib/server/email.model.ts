@@ -1,7 +1,6 @@
 type verificationTemplate = {
     readonly type: 'verification';
-    readonly sub: string;
-    readonly props: {
+    readonly props?: {
         doiLink: string;
         userName?: string;
         firstName?: string;
@@ -11,8 +10,7 @@ type verificationTemplate = {
 
 type accountResetTemplate = {
     readonly type: 'accountReset';
-    readonly sub: string;
-    readonly props: {
+    readonly props?: {
         resetLink: string;
         userName?: string;
         firstName?: string;
@@ -22,8 +20,7 @@ type accountResetTemplate = {
 
 type sessionNotificationTemplate = {
     readonly type: 'sessionNotification';
-    readonly sub: string;
-    readonly props: {
+    readonly props?: {
         loginTime: string;
         loginLocation: string;
         userName?: string;
@@ -32,13 +29,15 @@ type sessionNotificationTemplate = {
     };
 }
 
-export type Template = verificationTemplate | accountResetTemplate | sessionNotificationTemplate;
+type TemplateWithOptionalProps = verificationTemplate | accountResetTemplate | sessionNotificationTemplate;
+export type Template = Required<TemplateWithOptionalProps>;
 export type TemplateTypes = Template['type'];
+export type TemplateProps = Template['props'];
 
 export interface Email {
     readonly id: string;
     readonly sub: string;
-    readonly template: Readonly<Template>;
+    readonly template: TemplateWithOptionalProps;
     sentAt?: Date;
     deliveryMethod: 'resend';
     resendId: string;
