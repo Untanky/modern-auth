@@ -2,6 +2,7 @@
 import {
     boolean, char, pgEnum, pgSchema, timestamp, uuid, varchar,
 } from 'drizzle-orm/pg-core';
+import { CODE_LENGTH } from './verification.service';
 
 export const emailSchema = pgSchema('email');
 
@@ -23,16 +24,16 @@ export const templates = pgEnum('templates_enum', [
 
 export const email = emailSchema.table('email', {
     id: uuid('id').primaryKey().defaultRandom(),
-    sub: uuid('sub').references(() => preference.sub, { onDelete: 'set null' }),
+    sub: uuid('sub').references(() => preference.sub, { onDelete: 'no action' }).notNull(),
     sentAt: timestamp('sent_at').notNull(),
     template: templates('template').notNull(),
 });
 
 export const verificationRequest = emailSchema.table('verification_request', {
     id: uuid('id').primaryKey().defaultRandom(),
-    sub: uuid('sub').references(() => preference.sub, { onDelete: 'set null' }),
+    sub: uuid('sub').references(() => preference.sub, { onDelete: 'no action' }).notNull(),
     expiresAt: timestamp('expires_at').notNull(),
-    codeVerifier: char('code_verifier', { length: 36 }).notNull(),
+    codeVerifier: char('code_verifier', { length: CODE_LENGTH }).notNull(),
 });
 
 export const verification = emailSchema.table('verification', {

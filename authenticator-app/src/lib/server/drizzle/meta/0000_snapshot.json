@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "4dc2ccd5-5c77-4c9f-b170-8c411515235a",
+  "id": "87f19c12-b4e1-4a8e-bbc8-76082c249a2c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "email": {
@@ -19,7 +19,7 @@
           "name": "sub",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "sent_at": {
           "name": "sent_at",
@@ -46,7 +46,7 @@
           "columnsTo": [
             "sub"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -185,7 +185,7 @@
           "name": "sub",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "expires_at": {
           "name": "expires_at",
@@ -195,7 +195,7 @@
         },
         "code_verifier": {
           "name": "code_verifier",
-          "type": "char(36)",
+          "type": "char(48)",
           "primaryKey": false,
           "notNull": true
         }
@@ -212,7 +212,7 @@
           "columnsTo": [
             "sub"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },

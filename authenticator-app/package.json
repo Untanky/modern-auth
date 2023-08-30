@@ -36,7 +36,9 @@
   },
   "type": "module",
   "dependencies": {
-    "drizzle-orm": "^0.28.2",
+    "dayjs": "^1.11.9",
+    "drizzle-orm": "^0.28.5",
+    "js-sha3": "^0.8.0",
     "postgres": "^3.3.5",
     "resend": "^0.17.2",
     "svelte-email": "^0.0.4"

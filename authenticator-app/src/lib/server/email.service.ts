@@ -4,7 +4,7 @@ import type {
 } from './email.model';
 import { renderTemplate } from './render-template';
 
-export type EmailWithCompleteTemplate = Email & { template: Template }
+export type EmailWithCompleteTemplate = Pick<Email, 'sub'> & { template: Template }
 
 export class EmailService {
     private readonly emailRepo: EmailRepository;
@@ -26,10 +26,11 @@ export class EmailService {
         return this.saveEmailInDB(email, resend);
     }
 
-    private async saveEmailInDB(email: Email, resend: { id: string }): Promise<{ id: string }> {
+    private async saveEmailInDB(email: EmailWithCompleteTemplate, resend: { id: string }): Promise<{ id: string }> {
         try {
             const createdEmail = await this.emailRepo.create({
                 ...email,
+                deliveryMethod: 'resend',
                 id: '',
                 sentAt: new Date(),
                 resendId: resend.id,

@@ -51,16 +51,17 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     }
 
     update(entity: Preferences): Promise<Preferences> {
+        console.log(entity);
         return this.db.update(preference)
             .set(entity)
             .where(eq(preference.sub, entity.sub))
-            .returning()
-            .then(([result]) => ({
-                ...result,
-                // TODO: find a way to fetch these dynamically
-                verified: false,
-                verifiedAt: undefined,
-            }));
+            // .returning()
+            // .then(([result]) => ({
+            //     ...result,
+            //     // TODO: find a way to fetch these dynamically
+            //     verified: false,
+            //     verifiedAt: undefined,
+            // }));
     }
 
     delete(where: Partial<Preferences>): Promise<void> {

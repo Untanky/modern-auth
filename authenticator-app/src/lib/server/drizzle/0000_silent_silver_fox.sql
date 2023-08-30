@@ -8,7 +8,7 @@ END $$;
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "email"."email" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"sub" uuid,
+	"sub" uuid NOT NULL,
 	"sent_at" timestamp NOT NULL,
 	"template" "templates_enum" NOT NULL
 );
@@ -33,13 +33,13 @@ CREATE TABLE IF NOT EXISTS "email"."verification" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "email"."verification_request" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"sub" uuid,
+	"sub" uuid NOT NULL,
 	"expires_at" timestamp NOT NULL,
-	"code_verifier" char(36) NOT NULL
+	"code_verifier" char(48) NOT NULL
 );
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "email"."email" ADD CONSTRAINT "email_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE set null ON UPDATE no action;
+ ALTER TABLE "email"."email" ADD CONSTRAINT "email_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -57,7 +57,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "email"."verification_request" ADD CONSTRAINT "verification_request_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE set null ON UPDATE no action;
+ ALTER TABLE "email"."verification_request" ADD CONSTRAINT "verification_request_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
