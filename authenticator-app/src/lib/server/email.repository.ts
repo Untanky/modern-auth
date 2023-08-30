@@ -50,8 +50,16 @@ export class DrizzleEmailRepository implements EmailRepository {
         );
     }
 
-    create(model: Required<Email>): Promise<Email> {
-        return this.db.transaction(async (tx): Promise<Email> => {
+    async create(model: Required<Email>): Promise<Email> {
+        const { insertedId } = await this.createEmail(model);
+        return {
+            ...model,
+            resendId: insertedId,
+        };
+    }
+
+    private createEmail(model: Required<Email>): Promise<{ insertedId: string }> {
+        return this.db.transaction(async (tx) => {
             const [createdEmail] = await tx
                 .insert(email)
                 .values({
@@ -61,17 +69,13 @@ export class DrizzleEmailRepository implements EmailRepository {
                     id: crypto.randomUUID(),
                 })
                 .returning({ insertedId: email.id });
-            console.log('createdEmail', createdEmail);
             await tx
                 .insert(resendEmail)
                 .values({
                     id: createdEmail.insertedId,
                     resendId: model.resendId,
                 });
-            return {
-                ...model,
-                id: createdEmail.insertedId,
-            };
+            return { insertedId: createdEmail.insertedId };
         });
     }
 
