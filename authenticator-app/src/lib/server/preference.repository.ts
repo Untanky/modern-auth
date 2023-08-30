@@ -1,13 +1,9 @@
+import type { Preferences } from '$lib/preferences/model';
+import { eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { PreferencesRepository } from './email.model';
 import type * as schema from './schema';
-import {
-    preference,
-    verification,
-    verificationRequest,
-} from './schema';
-import { eq, sql } from 'drizzle-orm';
-import type { Preferences } from '$lib/preferences/model';
+import { preferences } from './schema';
 
 export class DrizzlePreferencesRepository implements PreferencesRepository {
     private readonly db: PostgresJsDatabase<typeof schema>;
@@ -19,18 +15,12 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     findFirst(where?: Partial<Preferences> | undefined): Promise<Preferences> {
         return this.db
             .select()
-            .from(preference)
-            .leftJoin(verificationRequest, eq(preference.sub, verificationRequest.sub))
-            .leftJoin(verification, eq(verificationRequest.id, verification.id))
-            .where(where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`)
+            .from(preferences)
+            .where(where && where.sub ? eq(preferences.sub, where.sub) : sql`1 = 1`)
             .limit(1)
             .then(([result]): Preferences => ({
-                sub: result.preference.sub,
-                allowAccountReset: result.preference.allowAccountReset,
-                allowSessionNotification: result.preference.allowSessionNotification,
-                emailAddress: result.preference.emailAddress,
-                verified: !!result.verification,
-                verifiedAt: result.verification?.verifiedAt,
+                ...result,
+                verifiedAt: result.verifiedAt || undefined,
             }));
     }
 
@@ -40,7 +30,7 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
 
     create(entity: Preferences): Promise<Preferences> {
         return this.db
-            .insert(preference)
+            .insert(preferences)
             .values(entity)
             .returning()
             .then(([result]) => ({
@@ -52,9 +42,9 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     }
 
     update(entity: Preferences): Promise<Preferences> {
-        return this.db.update(preference)
+        return this.db.update(preferences)
             .set(entity)
-            .where(eq(preference.sub, entity.sub))
+            .where(eq(preferences.sub, entity.sub))
             .returning()
             .then(([result]) => ({
                 ...result,
@@ -65,8 +55,8 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     }
 
     delete(where: Partial<Preferences>): Promise<void> {
-        return this.db.delete(preference)
-            .where(where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`)
+        return this.db.delete(preferences)
+            .where(where && where.sub ? eq(preferences.sub, where.sub) : sql`1 = 1`)
             .then();
     }
 }

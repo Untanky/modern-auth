@@ -3,7 +3,7 @@ import { preferenceService } from '../../../../hooks.server';
 import type { RequestEvent, RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies }: RequestEvent): Promise<Response> => {
-    const sub = 'd6952eb8-d912-4e23-ad64-d27a01a960b2';
+    const sub = '70827860-7316-4099-983c-4c434ca7286d';
     const preferences = await preferenceService.find(sub);
 
     const headers = new Headers();
@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ cookies }: RequestEvent): Promise<Re
 };
 
 export const PUT: RequestHandler = async ({ request }: RequestEvent): Promise<Response> => {
-    const sub = 'd6952eb8-d912-4e23-ad64-d27a01a960b2';
+    const sub = '70827860-7316-4099-983c-4c434ca7286d';
     const preferences = await request.json() as InsertPreferences;
 
     await preferenceService.update({

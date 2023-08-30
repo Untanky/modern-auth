@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "87f19c12-b4e1-4a8e-bbc8-76082c249a2c",
+  "id": "a7d6003a-d03f-4fab-8ffe-c27b7b32d15c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "email": {
@@ -83,6 +83,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -133,42 +146,6 @@
           ]
         }
       }
-    },
-    "verification": {
-      "name": "verification",
-      "schema": "email",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "verified_at": {
-          "name": "verified_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "verification_id_verification_request_id_fk": {
-          "name": "verification_id_verification_request_id_fk",
-          "tableFrom": "verification",
-          "tableTo": "verification_request",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
     },
     "verification_request": {
       "name": "verification_request",

@@ -1,14 +1,14 @@
-import { shake256 as hasher } from 'js-sha3';
 import dayjs from 'dayjs';
 import type { InferSelectModel } from 'drizzle-orm';
-import crypto from 'node:crypto';
 import {
-    and, eq, lt,
+    and, eq, gte,
 } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { shake256 as hasher } from 'js-sha3';
+import crypto from 'node:crypto';
 import type { EmailService } from './email.service';
 import type * as schema from './schema';
-import { verification, verificationRequest } from './schema';
+import { preferences, verificationRequest } from './schema';
 
 export const CODE_LENGTH = 48;
 const BITS_IN_NIBBLE = 4;
@@ -81,29 +81,31 @@ export class VerificationService {
     }
 
     async finishVerification(id: string, code: string): Promise<void> {
-        await this.findValidVerificationRequest({ id, code });
-        await this.createVerification(id);
+        const { sub } = await this.findValidVerificationRequest({ id, code });
+        await this.updateVerificationState(sub);
     }
 
     private async findValidVerificationRequest({ id, code }: VerificationParameters): Promise<SelectVerificationRequest> {
+        console.log(new Date());
         const [request] = await this.#db
             .select()
             .from(verificationRequest)
             .where(and(
                 eq(verificationRequest.id, id),
                 eq(verificationRequest.codeVerifier, hash(code)),
-                lt(verificationRequest.expiresAt, new Date()),
+                gte(verificationRequest.expiresAt, new Date()),
             ))
             .limit(1);
+        console.log(hash(code));
         return request;
     }
 
-    private async createVerification(id: string): Promise<void> {
-        await this.#db
-            .insert(verification)
-            .values({
-                id,
+    private async updateVerificationState(sub: string): Promise<void> {
+        await this.#db.update(preferences)
+            .set({
+                verified: true,
                 verifiedAt: new Date(),
-            });
+            })
+            .where(eq(preferences.sub, sub));
     }
 }

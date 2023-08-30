@@ -21,9 +21,14 @@ export class PreferencesService {
     async update(preferences: Preferences): Promise<void> {
         const oldPreferences = await this.find(preferences.sub);
 
+        const emailChanged = oldPreferences.emailAddress !== preferences.emailAddress;
+        if (emailChanged) {
+            preferences.verified = false;
+            preferences.verifiedAt = undefined;
+        }
         await this.#preferencesRepo.update(preferences);
 
-        if (oldPreferences.emailAddress !== preferences.emailAddress) {
+        if (emailChanged) {
             await this.#verificationService.startVerification(preferences.sub);
         }
     }

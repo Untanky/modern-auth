@@ -23,6 +23,10 @@
     });
 </script>
 
+<svelte:head>
+    <title>Communication Preferences</title>
+</svelte:head>
+
 <main class="sm:w-[420px]">
   <CardWithIcon>
     <svelte:fragment slot="icon">
