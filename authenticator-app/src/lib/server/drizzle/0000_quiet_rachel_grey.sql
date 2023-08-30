@@ -16,8 +16,6 @@ CREATE TABLE IF NOT EXISTS "email"."email" (
 CREATE TABLE IF NOT EXISTS "email"."preference" (
 	"sub" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email_address" varchar NOT NULL,
-	"verified" boolean NOT NULL,
-	"verified_at" timestamp,
 	"allow_account_reset" boolean DEFAULT true NOT NULL,
 	"allow_session_notification" boolean DEFAULT false NOT NULL
 );
@@ -28,6 +26,18 @@ CREATE TABLE IF NOT EXISTS "email"."resend_email" (
 	CONSTRAINT "resend_email_resend_id_unique" UNIQUE("resend_id")
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "email"."verification" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"verified_at" timestamp NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "email"."verification_request" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sub" uuid,
+	"expires_at" timestamp NOT NULL,
+	"code_verifier" char(36) NOT NULL
+);
+--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "email"."email" ADD CONSTRAINT "email_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE set null ON UPDATE no action;
 EXCEPTION
@@ -36,6 +46,18 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "email"."resend_email" ADD CONSTRAINT "resend_email_id_email_id_fk" FOREIGN KEY ("id") REFERENCES "email"."email"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "email"."verification" ADD CONSTRAINT "verification_id_verification_request_id_fk" FOREIGN KEY ("id") REFERENCES "email"."verification_request"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "email"."verification_request" ADD CONSTRAINT "verification_request_sub_preference_sub_fk" FOREIGN KEY ("sub") REFERENCES "email"."preference"("sub") ON DELETE set null ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;

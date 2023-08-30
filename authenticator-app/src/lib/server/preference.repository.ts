@@ -1,7 +1,11 @@
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { Preferences, PreferencesRepository } from './email.model';
 import type * as schema from './schema';
-import { preference } from './schema';
+import {
+    preference,
+    verification,
+    verificationRequest,
+} from './schema';
 import { eq, sql } from 'drizzle-orm';
 
 export class DrizzlePreferencesRepository implements PreferencesRepository {
@@ -11,20 +15,22 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
         this.db = db;
     }
 
-    async findFirst(where?: Partial<Preferences> | undefined): Promise<Preferences> {
-        const result = await this.db.query.preference.findFirst({
-            // TODO: add better filters
-            where: where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`,
-        });
-
-        if (!result) {
-            throw new Error('not found');
-        }
-
-        return {
-            ...result,
-            verifiedAt: result.verifiedAt || undefined,
-        };
+    findFirst(where?: Partial<Preferences> | undefined): Promise<Preferences> {
+        return this.db
+            .select()
+            .from(preference)
+            .leftJoin(verificationRequest, eq(preference.sub, verificationRequest.sub))
+            .leftJoin(verification, eq(verificationRequest.id, verification.id))
+            .where(where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`)
+            .limit(1)
+            .then(([result]): Preferences => ({
+                sub: result.preference.sub,
+                allowAccountReset: result.preference.allowAccountReset,
+                allowSessionNotification: result.preference.allowSessionNotification,
+                emailAddress: result.preference.emailAddress,
+                verified: !!result.verification,
+                verifiedAt: result.verification?.verifiedAt,
+            }));
     }
 
     findMany(): Promise<Preferences[]> {
@@ -38,7 +44,9 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
             .returning()
             .then(([result]) => ({
                 ...result,
-                verifiedAt: result.verifiedAt || undefined,
+                // TODO: find a way to fetch these dynamically
+                verified: false,
+                verifiedAt: undefined,
             }));
     }
 
@@ -49,7 +57,9 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
             .returning()
             .then(([result]) => ({
                 ...result,
-                verifiedAt: result.verifiedAt || undefined,
+                // TODO: find a way to fetch these dynamically
+                verified: false,
+                verifiedAt: undefined,
             }));
     }
 

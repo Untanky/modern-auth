@@ -36,7 +36,6 @@ export class EmailService {
             });
             return { id: createdEmail.id };
         } catch (e) {
-            console.error(e);
             return { id: '' };
         }
     }

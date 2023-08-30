@@ -1,158 +1,241 @@
 {
-    "version": "5",
-    "dialect": "pg",
-    "id": "b2e0916d-aa2e-4aa7-b83d-8bd9f5ece7c4",
-    "prevId": "00000000-0000-0000-0000-000000000000",
-    "tables": {
-        "email": {
-            "name": "email",
-            "schema": "email",
-            "columns": {
-                "id": {
-                    "name": "id",
-                    "type": "uuid",
-                    "primaryKey": true,
-                    "notNull": true,
-                    "default": "gen_random_uuid()",
-                },
-                "sub": {
-                    "name": "sub",
-                    "type": "uuid",
-                    "primaryKey": false,
-                    "notNull": false,
-                },
-                "sent_at": {
-                    "name": "sent_at",
-                    "type": "timestamp",
-                    "primaryKey": false,
-                    "notNull": true,
-                },
-                "template": {
-                    "name": "template",
-                    "type": "templates_enum",
-                    "primaryKey": false,
-                    "notNull": true,
-                },
-            },
-            "indexes": {},
-            "foreignKeys": {
-                "email_sub_preference_sub_fk": {
-                    "name": "email_sub_preference_sub_fk",
-                    "tableFrom": "email",
-                    "tableTo": "preference",
-                    "columnsFrom": ["sub",],
-                    "columnsTo": ["sub",],
-                    "onDelete": "set null",
-                    "onUpdate": "no action",
-                },
-            },
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
+  "version": "5",
+  "dialect": "pg",
+  "id": "4dc2ccd5-5c77-4c9f-b170-8c411515235a",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "email": {
+      "name": "email",
+      "schema": "email",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "preference": {
-            "name": "preference",
-            "schema": "email",
-            "columns": {
-                "sub": {
-                    "name": "sub",
-                    "type": "uuid",
-                    "primaryKey": true,
-                    "notNull": true,
-                    "default": "gen_random_uuid()",
-                },
-                "email_address": {
-                    "name": "email_address",
-                    "type": "varchar",
-                    "primaryKey": false,
-                    "notNull": true,
-                },
-                "verified": {
-                    "name": "verified",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                },
-                "verified_at": {
-                    "name": "verified_at",
-                    "type": "timestamp",
-                    "primaryKey": false,
-                    "notNull": false,
-                },
-                "allow_account_reset": {
-                    "name": "allow_account_reset",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": true,
-                },
-                "allow_session_notification": {
-                    "name": "allow_session_notification",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": false,
-                },
-            },
-            "indexes": {},
-            "foreignKeys": {},
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
+        "sub": {
+          "name": "sub",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
-        "resend_email": {
-            "name": "resend_email",
-            "schema": "email",
-            "columns": {
-                "id": {
-                    "name": "id",
-                    "type": "uuid",
-                    "primaryKey": true,
-                    "notNull": true,
-                },
-                "resend_id": {
-                    "name": "resend_id",
-                    "type": "varchar",
-                    "primaryKey": false,
-                    "notNull": true,
-                },
-            },
-            "indexes": {},
-            "foreignKeys": {
-                "resend_email_id_email_id_fk": {
-                    "name": "resend_email_id_email_id_fk",
-                    "tableFrom": "resend_email",
-                    "tableTo": "email",
-                    "columnsFrom": ["id",],
-                    "columnsTo": ["id",],
-                    "onDelete": "cascade",
-                    "onUpdate": "no action",
-                },
-            },
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {
-                "resend_email_resend_id_unique": {
-                    "name": "resend_email_resend_id_unique",
-                    "nullsNotDistinct": false,
-                    "columns": ["resend_id",],
-                },
-            },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
         },
+        "template": {
+          "name": "template",
+          "type": "templates_enum",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "email_sub_preference_sub_fk": {
+          "name": "email_sub_preference_sub_fk",
+          "tableFrom": "email",
+          "tableTo": "preference",
+          "columnsFrom": [
+            "sub"
+          ],
+          "columnsTo": [
+            "sub"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     },
-    "enums": {
-        "templates_enum": {
-            "name": "templates_enum",
-            "values": {
-                "verification": "verification",
-                "accountReset": "accountReset",
-                "sessionNotification": "sessionNotification",
-            },
+    "preference": {
+      "name": "preference",
+      "schema": "email",
+      "columns": {
+        "sub": {
+          "name": "sub",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
+        "email_address": {
+          "name": "email_address",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allow_account_reset": {
+          "name": "allow_account_reset",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "allow_session_notification": {
+          "name": "allow_session_notification",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     },
-    "schemas": {
-        "email": "email",
+    "resend_email": {
+      "name": "resend_email",
+      "schema": "email",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "resend_id": {
+          "name": "resend_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "resend_email_id_email_id_fk": {
+          "name": "resend_email_id_email_id_fk",
+          "tableFrom": "resend_email",
+          "tableTo": "email",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resend_email_resend_id_unique": {
+          "name": "resend_email_resend_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "resend_id"
+          ]
+        }
+      }
     },
-    "_meta": {
-        "schemas": {},
-        "tables": {},
-        "columns": {},
+    "verification": {
+      "name": "verification",
+      "schema": "email",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "verification_id_verification_request_id_fk": {
+          "name": "verification_id_verification_request_id_fk",
+          "tableFrom": "verification",
+          "tableTo": "verification_request",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     },
-};
+    "verification_request": {
+      "name": "verification_request",
+      "schema": "email",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sub": {
+          "name": "sub",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_verifier": {
+          "name": "code_verifier",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "verification_request_sub_preference_sub_fk": {
+          "name": "verification_request_sub_preference_sub_fk",
+          "tableFrom": "verification_request",
+          "tableTo": "preference",
+          "columnsFrom": [
+            "sub"
+          ],
+          "columnsTo": [
+            "sub"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "templates_enum": {
+      "name": "templates_enum",
+      "values": {
+        "verification": "verification",
+        "accountReset": "accountReset",
+        "sessionNotification": "sessionNotification"
+      }
+    }
+  },
+  "schemas": {
+    "email": "email"
+  },
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}
