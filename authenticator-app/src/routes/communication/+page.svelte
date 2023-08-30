@@ -11,11 +11,13 @@
     const loadPreferences = (): Promise<Preferences> => fetch('/v1/communication/preferences')
             .then((res) => res.json())
     
-    const updatePreferences = (preferences: InsertPreferences): void => {
+    const updatePreferences = (pref: InsertPreferences): void => {
         fetch('/v1/communication/preferences', {
-            body: JSON.stringify(preferences),
+            body: JSON.stringify(pref),
             method: 'PUT',
         })
+            .then(loadPreferences)
+            .then((result) => preferences = Promise.resolve(result));
     }
 
     onMount(() => {
