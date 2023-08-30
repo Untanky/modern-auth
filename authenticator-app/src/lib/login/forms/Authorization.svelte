@@ -77,7 +77,7 @@
     Client <em class="italic">"Modern Auth Demo"</em> is requesting access to your account. The following scopes are requested:
   </p>
   <ResourceServerList class="!my-2 max-h-96 overflow-y-scroll" resourceServers={resourceServers} />
-  <button type="submit" class="self-end btn btn-primary">
+  <button type="submit" class="self-end btn btn-yellow">
     Authorize
   </button>
 </form>

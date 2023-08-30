@@ -16,7 +16,7 @@
     <button type="button" on:click={submit} class="btn btn-link">
       Skip
     </button>
-    <button type="button" on:click={submit} class="btn btn-primary">
+    <button type="button" on:click={submit} class="btn btn-yellow">
       Register
     </button>
   </div>

@@ -20,7 +20,7 @@
     </p>
     <form class="flex flex-col" on:submit={onSubmit}>
       <ProfileForm />
-      <button type="submit" class="ml-auto btn btn-primary">Save</button>
+      <button type="submit" class="ml-auto btn btn-yellow">Save</button>
     </form>
   </CardWithIcon>
 </main>

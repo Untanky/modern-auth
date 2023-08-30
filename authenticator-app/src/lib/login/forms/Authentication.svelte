@@ -53,7 +53,7 @@ import RadioGroup from '../../utils/RadioGroup.svelte';
           to authenticate with your biometric data or a physical hardware token.
           Please prepare for the method chosen when setting up this device.
         </p>
-        <button type="submit" class="self-end mt-2 btn btn-primary">
+        <button type="submit" class="self-end mt-2 btn btn-yellow">
           Authenticate
         </button>
       </div>
@@ -77,7 +77,7 @@ import RadioGroup from '../../utils/RadioGroup.svelte';
           value={password}
           onInput={onChangePassword}
         />
-        <button type="submit" class="self-end mt-2 btn btn-primary">
+        <button type="submit" class="self-end mt-2 btn btn-yellow">
           Continue
         </button>
       </div>

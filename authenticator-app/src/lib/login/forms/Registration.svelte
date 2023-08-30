@@ -13,7 +13,7 @@
   <p>
     Once authenticated, we will create new user account for you.
   </p>
-  <button type="button" on:click={submit} class="self-end mt-2 btn btn-primary">
+  <button type="button" on:click={submit} class="self-end mt-2 btn btn-yellow">
     Register
   </button>
 </form>

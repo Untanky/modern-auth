@@ -151,15 +151,43 @@
     @apply text-sm px-3 py-1.5;
   }
 
-  .btn-primary {
+  .btn-lg {
+    @apply text-lg px-6 py-3;
+  }
+
+  .btn-yellow {
     /* normal colors */
     @apply bg-yellow-400 text-stone-950;
     /* dark colors */
     @apply dark:bg-yellow-500;
   }
 
-  .btn-primary:disabled {
+  .btn-yellow:disabled {
     @apply bg-yellow-200 text-stone-500;
     @apply dark:bg-yellow-200;
+  }
+
+  .btn-green {
+    /* normal colors */
+    @apply bg-green-400 text-stone-950;
+    /* dark colors */
+    @apply dark:bg-green-500;
+  }
+
+  .btn-green:disabled {
+    @apply bg-green-200 text-stone-500;
+    @apply dark:bg-green-200;
+  }
+
+  .btn-red {
+    /* normal colors */
+    @apply bg-red-400 text-stone-950;
+    /* dark colors */
+    @apply dark:bg-red-500;
+  }
+
+  .btn-red:disabled {
+    @apply bg-red-200 text-stone-500;
+    @apply dark:bg-red-200;
   }
 }

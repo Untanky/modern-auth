@@ -1,5 +1,5 @@
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import type { Preferences, PreferencesRepository } from './email.model';
+import type { PreferencesRepository } from './email.model';
 import type * as schema from './schema';
 import {
     preference,
@@ -7,6 +7,7 @@ import {
     verificationRequest,
 } from './schema';
 import { eq, sql } from 'drizzle-orm';
+import type { Preferences } from '$lib/preferences/model';
 
 export class DrizzlePreferencesRepository implements PreferencesRepository {
     private readonly db: PostgresJsDatabase<typeof schema>;
@@ -16,6 +17,14 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     }
 
     findFirst(where?: Partial<Preferences> | undefined): Promise<Preferences> {
+        console.log(this.db
+            .select()
+            .from(preference)
+            .leftJoin(verificationRequest, eq(preference.sub, verificationRequest.sub))
+            .leftJoin(verification, eq(verificationRequest.id, verification.id))
+            .where(where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`)
+            .limit(1)
+            .toSQL().sql);
         return this.db
             .select()
             .from(preference)

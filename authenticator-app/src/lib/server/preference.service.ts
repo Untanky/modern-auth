@@ -1,7 +1,8 @@
-import type { Preferences, PreferencesRepository } from './email.model';
+import type { Preferences } from '$lib/preferences/model';
+import type { PreferencesRepository } from './email.model';
 import type { VerificationService } from './verification.service';
 
-export class PreferenceService {
+export class PreferencesService {
     readonly #preferencesRepo: PreferencesRepository;
     readonly #verificationService: VerificationService;
 

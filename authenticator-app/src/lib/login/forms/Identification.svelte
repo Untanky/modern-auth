@@ -39,7 +39,7 @@
     placeholder="Your user id"
     autocomplete="username"
   />
-  <button type="submit" class="self-end mt-4 btn btn-primary" disabled={!canSubmit}>
+  <button type="submit" class="self-end mt-4 btn btn-yellow" disabled={!canSubmit}>
     Continue
   </button>
 </form>

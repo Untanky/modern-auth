@@ -1,3 +1,5 @@
+import type { Preferences } from '$lib/preferences/model';
+
 type verificationTemplate = {
     readonly type: 'verification';
     readonly props?: {
@@ -41,15 +43,6 @@ export interface Email {
     sentAt?: Date;
     deliveryMethod: 'resend';
     resendId: string;
-}
-
-export interface Preferences {
-    readonly sub: string;
-    emailAddress: string;
-    verified: boolean;
-    verifiedAt?: Date;
-    allowAccountReset: boolean;
-    allowSessionNotification: boolean;
 }
 
 interface Repository<Type> {
