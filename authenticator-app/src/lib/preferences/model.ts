@@ -6,3 +6,9 @@ export interface Preferences {
     allowAccountReset: boolean;
     allowSessionNotification: boolean;
 }
+
+export interface InsertPreferences {
+    emailAddress: string;
+    allowAccountReset: boolean;
+    allowSessionNotification: boolean;
+}

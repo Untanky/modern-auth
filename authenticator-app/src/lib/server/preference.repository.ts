@@ -17,14 +17,6 @@ export class DrizzlePreferencesRepository implements PreferencesRepository {
     }
 
     findFirst(where?: Partial<Preferences> | undefined): Promise<Preferences> {
-        console.log(this.db
-            .select()
-            .from(preference)
-            .leftJoin(verificationRequest, eq(preference.sub, verificationRequest.sub))
-            .leftJoin(verification, eq(verificationRequest.id, verification.id))
-            .where(where && where.sub ? eq(preference.sub, where.sub) : sql`1 = 1`)
-            .limit(1)
-            .toSQL().sql);
         return this.db
             .select()
             .from(preference)
