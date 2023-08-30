@@ -23,7 +23,6 @@ export class PreferenceService {
         await this.#preferencesRepo.update(preferences);
 
         if (oldPreferences.emailAddress !== preferences.emailAddress) {
-            console.log('Send verification email');
             await this.#verificationService.startVerification(preferences.sub);
         }
     }

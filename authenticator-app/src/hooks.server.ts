@@ -9,6 +9,6 @@ import { VerificationService } from '$lib/server/verification.service';
 const drizzleEmailRepo = new DrizzleEmailRepository(db);
 const drizzlePreferenceRepo = new DrizzlePreferencesRepository(db);
 const emailService = new EmailService(drizzleEmailRepo, drizzlePreferenceRepo);
-const verificationService = new VerificationService(db, emailService);
-const preferenceService = new PreferenceService(drizzlePreferenceRepo, verificationService);
+export const verificationService = new VerificationService(db, emailService);
+export const preferenceService = new PreferenceService(drizzlePreferenceRepo, verificationService);
 
