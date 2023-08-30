@@ -1,7 +1,7 @@
 <script lang="ts">
     import CardWithIcon from '$lib/CardWithIcon.svelte';
     import Email from '$lib/login/icons/Email.svelte';
-    import type { Preferences } from '$lib/preferences/model';
+    import type { InsertPreferences, Preferences } from '$lib/preferences/model';
     import Loading from '$lib/utils/Loading.svelte';
     import { onMount } from 'svelte';
     import CommunicationForm from './CommunicationForm.svelte';
@@ -11,10 +11,9 @@
     const loadPreferences = (): Promise<Preferences> => fetch('/v1/communication/preferences')
             .then((res) => res.json())
     
-    const updatePreferences = (preferences: Preferences): void => {
+    const updatePreferences = (preferences: InsertPreferences): void => {
         fetch('/v1/communication/preferences', {
             body: JSON.stringify(preferences),
-            cache: 'no-store',
             method: 'PUT',
         })
     }

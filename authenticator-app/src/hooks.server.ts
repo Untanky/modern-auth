@@ -5,7 +5,6 @@ import { DrizzlePreferencesRepository } from '$lib/server/preference.repository'
 import { PreferencesService } from '$lib/server/preference.service';
 import { VerificationService } from '$lib/server/verification.service';
 
-
 const drizzleEmailRepo = new DrizzleEmailRepository(db);
 const drizzlePreferenceRepo = new DrizzlePreferencesRepository(db);
 const emailService = new EmailService(drizzleEmailRepo, drizzlePreferenceRepo);

@@ -1,9 +1,10 @@
+import { browser } from '$app/environment';
+import { refreshToken } from '$lib/secure-client';
 import { readonly, writable } from 'svelte/store';
 import {
-    type AuthorizationData, getAuthorizationState, setAuthorizationState,
+    getAuthorizationState, setAuthorizationState,
+    type AuthorizationData,
 } from './local-store';
-import { refreshToken } from '$lib/secure-client';
-import { browser } from '$app/environment';
 
 class AuthorizationState implements AuthorizationData {
     accessToken: string;

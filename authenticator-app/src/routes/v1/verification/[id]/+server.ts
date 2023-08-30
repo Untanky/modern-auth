@@ -13,6 +13,8 @@ export const GET: RequestHandler = async ({ params, url }: RequestEvent): Promis
 
     await verificationService.finishVerification(id, code);
 
+    const headers = new Headers();
     // TODO: redirect to a better page
-    return new Response('ok');
+    headers.set('cache', 'no-store');
+    return new Response('ok', { headers });
 };
