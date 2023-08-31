@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "a7d6003a-d03f-4fab-8ffe-c27b7b32d15c",
+  "id": "c7036706-9236-429d-998e-04c1939f5268",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "email": {
@@ -61,8 +61,7 @@
           "name": "sub",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "email_address": {
           "name": "email_address",
@@ -96,6 +95,28 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "profile": {
+      "name": "profile",
+      "schema": "profile",
+      "columns": {
+        "sub": {
+          "name": "sub",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -208,7 +229,8 @@
     }
   },
   "schemas": {
-    "email": "email"
+    "email": "email",
+    "profile": "profile"
   },
   "_meta": {
     "schemas": {},

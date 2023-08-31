@@ -1,14 +1,14 @@
 /* eslint-disable newline-per-chained-call */
 import {
-    boolean, char, pgEnum, pgSchema, timestamp, uuid, varchar,
+    boolean, char, jsonb, pgEnum, pgSchema, timestamp, uuid, varchar,
 } from 'drizzle-orm/pg-core';
 import { CODE_LENGTH } from './verification.service';
+import type { Profile } from '$lib/profile/model';
 
 export const emailSchema = pgSchema('email');
 
 export const preferences = emailSchema.table('preference', {
-    sub: uuid('sub').primaryKey()
-        .defaultRandom(),
+    sub: uuid('sub').primaryKey(),
     emailAddress: varchar('email_address').notNull(),
     allowAccountReset: boolean('allow_account_reset').default(true)
         .notNull(),
@@ -41,4 +41,11 @@ export const verificationRequest = emailSchema.table('verification_request', {
 export const resendEmail = emailSchema.table('resend_email', {
     id: uuid('id').primaryKey().references(() => email.id, { onDelete: 'cascade' }),
     resendId: varchar('resend_id').notNull().unique(),
+});
+
+export const profileSchema = pgSchema('profile');
+
+export const profile = profileSchema.table('profile', {
+    sub: uuid('sub').primaryKey(),
+    data: jsonb('data').notNull().$type<Profile>(),
 });

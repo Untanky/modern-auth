@@ -1,5 +1,7 @@
 CREATE SCHEMA "email";
 --> statement-breakpoint
+CREATE SCHEMA "profile";
+--> statement-breakpoint
 DO $$ BEGIN
  CREATE TYPE "templates_enum" AS ENUM('verification', 'accountReset', 'sessionNotification');
 EXCEPTION
@@ -14,12 +16,17 @@ CREATE TABLE IF NOT EXISTS "email"."email" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "email"."preference" (
-	"sub" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sub" uuid PRIMARY KEY NOT NULL,
 	"email_address" varchar NOT NULL,
 	"allow_account_reset" boolean DEFAULT true NOT NULL,
 	"allow_session_notification" boolean DEFAULT false NOT NULL,
 	"verified" boolean DEFAULT false NOT NULL,
 	"verified_at" timestamp
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "profile"."profile" (
+	"sub" uuid PRIMARY KEY NOT NULL,
+	"data" jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "email"."resend_email" (

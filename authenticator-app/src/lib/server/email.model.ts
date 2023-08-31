@@ -1,4 +1,5 @@
 import type { Preferences } from '$lib/preferences/model';
+import type { Profile } from '$lib/profile/model';
 
 type verificationTemplate = {
     readonly type: 'verification';
@@ -58,3 +59,5 @@ export interface EmailRepository extends Repository<Email> {
 }
 
 export type PreferencesRepository = Repository<Preferences>;
+
+export type ProfileRepository = Repository<Profile>;

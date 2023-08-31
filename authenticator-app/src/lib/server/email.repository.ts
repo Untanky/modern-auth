@@ -13,7 +13,6 @@ export class DrizzleEmailRepository implements EmailRepository {
         this.db = db;
     }
 
-    // eslint-disable-next-line max-lines-per-function
     findFirst(where?: Partial<Email> | undefined): Promise<Email> {
         return this.db
             .select()

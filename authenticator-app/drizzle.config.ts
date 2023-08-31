@@ -6,6 +6,6 @@ export default {
   dbCredentials: {
     connectionString: process.env.DB_URL,
   },
-  schemaFilter: ['email'],
+  schemaFilter: ['email', 'profile'],
   out: './src/lib/server/drizzle'
 } satisfies Config;
