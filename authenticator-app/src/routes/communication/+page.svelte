@@ -30,7 +30,7 @@
 </svelte:head>
 
 <main class="sm:w-[420px]">
-  <CardWithIcon>
+  <CardWithIcon class="rounded-b-md">
     <svelte:fragment slot="icon">
       <Email />
     </svelte:fragment>
@@ -45,7 +45,7 @@
         />
     {/await}
   </CardWithIcon>
-  <p class="card mt-2 card-blue">
+  <p class="card mt-2 card-blue rounded-t-md">
     The information you enter here, will  <em>never be shared 
     with third parties</em>. The email entered here is only
     used for communication relating to you account, such as

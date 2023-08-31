@@ -1,4 +1,9 @@
-<div class="relative card">
+<script lang="ts">
+    let clazz = '';
+    export { clazz as class };
+</script>
+
+<div class="relative card {clazz}">
   <div class="absolute -top-10 left-0 right-0 flex justify-center">
     <span class="w-20 h-20 p-2 border bg-stone-50 dark:bg-stone-900 dark:border-stone-600 rounded-full">
     </span>
