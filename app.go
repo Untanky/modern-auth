@@ -57,9 +57,11 @@ func (a *App) Start() {
 	clientService := oauth2.NewClientService(clientRepo, logger.Named("ClientService"))
 	clientController := oauth2.NewClientController(clientService)
 
+	authenticationVerifierStore := core.NewInMemoryKeyValueStore[[]byte]()
+
 	authorizationStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
 	codeStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
-	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, clientService, logger.Named("AuthorizationService"))
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, authenticationVerifierStore, clientService, logger.Named("AuthorizationService"))
 	authorizationController := oauth2.NewAuthorizationController(authorizationService)
 
 	accessTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
@@ -74,7 +76,7 @@ func (a *App) Start() {
 	userService := domain.NewUserService(userRepo)
 	credentialRepo := gormLocal.NewGormCredentialRepo(a.db)
 	credentialService := domain.NewCredentialService(credentialRepo)
-	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, userService, credentialService)
+	authenticationService := webauthn.NewAuthenticationService(initAuthnStore, authenticationVerifierStore, userService, credentialService)
 	authenticationController := webauthn.NewAuthenticationController(authenticationService)
 	logger.Info("Initialize services successful")
 

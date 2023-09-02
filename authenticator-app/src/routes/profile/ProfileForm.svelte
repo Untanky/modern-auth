@@ -27,7 +27,7 @@
 
 <form class="flex flex-col pt-4 space-y-4" on:submit={onSubmit}>
     <div class="grid grid-cols-2 gap-2">
-        <h3 class="text-lg col-span-2">Personal information:</h3>
+        <h3 class="text-lg col-span-2">Personal information</h3>
         <Input
             type="text"
             value={profile.firstName || ''}
@@ -66,7 +66,7 @@
             id="email"
             label="email"
         />
-        <h3 class="text-lg">Address:</h3>
+        <h3 class="text-lg">Address</h3>
         <Input
             class="col-span-2"
             type="text"

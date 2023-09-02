@@ -3,12 +3,14 @@ package webauthn
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/domain"
+	"github.com/Untanky/modern-auth/internal/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -18,20 +20,23 @@ import (
 const rpId = "localhost" // TODO: make customizable
 
 type AuthenticationService struct {
-	initAuthenticationStore core.KeyValueStore[string, CredentialOptions]
-	userService             *domain.UserService
-	credentialService       *domain.CredentialService
+	initAuthenticationStore     core.KeyValueStore[string, CredentialOptions]
+	authenticationVerifierStore core.KeyValueStore[string, []byte]
+	userService                 *domain.UserService
+	credentialService           *domain.CredentialService
 }
 
 func NewAuthenticationService(
 	initAuthenticationStore core.KeyValueStore[string, CredentialOptions],
+	authenticationVerifierStore core.KeyValueStore[string, []byte],
 	userService *domain.UserService,
 	credentialService *domain.CredentialService,
 ) *AuthenticationService {
 	return &AuthenticationService{
-		initAuthenticationStore: initAuthenticationStore,
-		userService:             userService,
-		credentialService:       credentialService,
+		initAuthenticationStore:     initAuthenticationStore,
+		authenticationVerifierStore: authenticationVerifierStore,
+		userService:                 userService,
+		credentialService:           credentialService,
 	}
 }
 
@@ -294,6 +299,21 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
+	cookie, err := ctx.Cookie("authorization_id")
+	if err != nil || cookie == "" {
+		ctx.JSON(200, &result)
+		return
+	}
+
+	authVerifier, err := c.service.continueAuthorization(ctx.Request.Context(), cookie)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal_server_error",
+		})
+	}
+	ctx.SetCookie("authentication_verifier", string(utils.EncodeBase64(authVerifier)), 300, "", "localhost", true, true)
+
+	// TODO: maybe redirect
 	ctx.JSON(200, &result)
 }
 
@@ -315,5 +335,31 @@ func (c *AuthenticationController) getCredential(ctx *gin.Context) {
 		return
 	}
 
+	cookie, err := ctx.Cookie("authorization_id")
+	if err != nil || cookie == "" {
+		ctx.JSON(200, &result)
+		return
+	}
+
+	authVerifier, err := c.service.continueAuthorization(ctx.Request.Context(), cookie)
+	ctx.SetCookie("authentication_verifier", string(utils.EncodeBase64(authVerifier)), 300, "", "localhost", true, true)
+
+	// TODO: maybe redirect
 	ctx.JSON(200, &result)
+}
+
+func (s *AuthenticationService) continueAuthorization(ctx context.Context, authorizationId string) ([]byte, error) {
+	rand := make([]byte, 64)
+	utils.RandomBytes(rand)
+	firstHash := utils.HashShake256(rand)
+	secondHash := utils.HashShake256(firstHash)
+
+	fmt.Println(firstHash, secondHash)
+
+	err := s.authenticationVerifierStore.Set(authorizationId, secondHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return firstHash, nil
 }

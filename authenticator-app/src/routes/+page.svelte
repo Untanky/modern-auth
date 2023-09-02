@@ -12,4 +12,3 @@
     <SmartLogin />
   </CardWithIcon>
 </main>
-<a href="/communication">Communication</a>

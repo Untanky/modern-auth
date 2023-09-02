@@ -85,6 +85,10 @@
               }));
           });
   };
+
+  const onAuthorize = (): void => {
+    fetch('/v1/oauth2/authorization/succeed')
+  }
 </script>
 
 <div class="flex justify-between items-center">
@@ -108,5 +112,5 @@
 {:else if $state.state === 'getCredential'}
 <Authentication userId={$state.userId} submit={onGetCredential} />
 {:else if $state.state === 'success'}
-<Authorization submit={console.log}></Authorization>
+<Authorization submit={onAuthorize}></Authorization>
 {/if}
