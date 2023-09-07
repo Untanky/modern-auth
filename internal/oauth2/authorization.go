@@ -155,8 +155,6 @@ func (s *AuthorizationService) VerifyAuthentication(ctx context.Context, uuid st
 		}
 	}
 
-	fmt.Println(decodedVerifier, hashedAuthenticationVerifier)
-
 	if string(hashedAuthenticationVerifier) != string(utils.HashShake256(decodedVerifier)) {
 		return &AuthorizationError{
 			RedirectUri: "",

@@ -393,8 +393,6 @@ func (s *AuthenticationService) continueAuthorization(ctx context.Context, autho
 	firstHash := utils.HashShake256(rand)
 	secondHash := utils.HashShake256(firstHash)
 
-	fmt.Println(firstHash, secondHash)
-
 	err := s.authenticationVerifierStore.Set(authorizationId, secondHash)
 	if err != nil {
 		return nil, err
