@@ -3,7 +3,6 @@ package webauthn
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -392,8 +391,6 @@ func (s *AuthenticationService) continueAuthorization(ctx context.Context, autho
 	utils.RandomBytes(rand)
 	firstHash := utils.HashShake256(rand)
 	secondHash := utils.HashShake256(firstHash)
-
-	fmt.Println(firstHash, secondHash)
 
 	err := s.authenticationVerifierStore.Set(authorizationId, secondHash)
 	if err != nil {
