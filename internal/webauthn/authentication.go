@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,6 +24,7 @@ type AuthenticationService struct {
 	authenticationVerifierStore core.KeyValueStore[string, []byte]
 	userService                 *domain.UserService
 	credentialService           *domain.CredentialService
+	logger                      *slog.Logger
 }
 
 func NewAuthenticationService(
@@ -32,18 +33,26 @@ func NewAuthenticationService(
 	userService *domain.UserService,
 	credentialService *domain.CredentialService,
 ) *AuthenticationService {
+	logger := slog.Default().With("service", "web-authentication")
+
 	return &AuthenticationService{
 		initAuthenticationStore:     initAuthenticationStore,
 		authenticationVerifierStore: authenticationVerifierStore,
 		userService:                 userService,
 		credentialService:           credentialService,
+		logger:                      logger,
 	}
 }
 
-func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenticationRequest) (CredentialOptions, error) {
+func (s *AuthenticationService) InitiateAuthentication(ctx context.Context, request *InitiateAuthenticationRequest) (CredentialOptions, error) {
 	id := uuid.New().String()
+	userIdBytes := []byte(request.UserId)
 
-	user, err := s.userService.GetUserByUserID(context.TODO(), []byte(request.UserId))
+	grouped := s.logger.With("userId", utils.EncodeBase64(utils.HashShake256(userIdBytes))).WithGroup("authentication").With("id", id)
+
+	grouped.DebugContext(ctx, "Starting authentication")
+
+	user, err := s.userService.GetUserByUserID(context.TODO(), userIdBytes)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -62,7 +71,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 					Name: "Modern Auth",
 				},
 				User: PublicKeyCredentialUserEntity{
-					Id:          []byte(request.UserId),
+					Id:          userIdBytes,
 					Name:        request.UserId,
 					DisplayName: request.UserId,
 				},
@@ -81,6 +90,10 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 				Attestation: "indirect",
 			},
 		}
+
+		grouped = grouped.With("type", "create")
+
+		grouped.InfoContext(ctx, "Requesting new credential")
 	} else {
 		credentials, err := s.credentialService.GetCredentialsByUserID(context.TODO(), user.ID)
 		if err != nil {
@@ -99,7 +112,7 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 			AuthenticationId: id,
 			Type:             "get",
 			Options: PublicKeyCredentialRequestOptions{
-				UserId: []byte(request.UserId),
+				UserId: userIdBytes,
 				// TODO: randomly generate challenge
 				Challenge:        []byte("1234567890"),
 				RpID:             rpId,
@@ -109,6 +122,10 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 				Timeout:          60000,
 			},
 		}
+
+		grouped = grouped.With("type", "get")
+
+		grouped.InfoContext(ctx, "Requesting existing credential")
 	}
 
 	err = s.initAuthenticationStore.Set(id, initResponse)
@@ -116,11 +133,17 @@ func (s *AuthenticationService) InitiateAuthentication(request *InitiateAuthenti
 		return nil, err
 	}
 
+	grouped.InfoContext(ctx, "Initialized authentication")
+
 	return initResponse, nil
 }
 
-func (s *AuthenticationService) Register(ctx context.Context, id string, request *CreateCredentialRequest) (*Success, error) {
-	options, err := s.initAuthenticationStore.Get(id)
+func (s *AuthenticationService) Register(ctx context.Context, request *CreateCredentialRequest) (*Success, error) {
+	grouped := s.logger.WithGroup("authentication").With(slog.String("id", request.AuthenticationID), slog.String("type", "create"))
+
+	grouped.DebugContext(ctx, "Received credential request")
+
+	options, err := s.initAuthenticationStore.Get(request.AuthenticationID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +167,16 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 		AttestationObject: *attestationObject,
 	}
 
+	grouped.DebugContext(ctx, "Parsed credential request")
+
 	credential := &domain.Credential{}
 
 	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
 		return nil, err
 	}
+
+	grouped.DebugContext(ctx, "Validated credential request")
 
 	userInstance := &domain.User{
 		UserID: options.GetUserID(),
@@ -168,10 +195,12 @@ func (s *AuthenticationService) Register(ctx context.Context, id string, request
 		return nil, err
 	}
 
-	result, err := s.IssueGrant(ctx, credential)
+	result, err := s.IssueGrant(ctx, credential.User)
 	if err != nil {
 		return nil, err
 	}
+
+	grouped.InfoContext(ctx, "Registration successful")
 
 	return result, nil
 }
@@ -182,6 +211,10 @@ type Success struct {
 }
 
 func (s *AuthenticationService) Login(ctx context.Context, request *RequestCredentialRequest) (*Success, error) {
+	grouped := s.logger.WithGroup("authentication").With(slog.String("id", request.AuthenticationID), slog.String("type", "get"))
+
+	grouped.DebugContext(ctx, "Received credential request")
+
 	options, err := s.initAuthenticationStore.Get(request.AuthenticationID)
 	if err != nil {
 		return nil, err
@@ -213,33 +246,39 @@ func (s *AuthenticationService) Login(ctx context.Context, request *RequestCrede
 		UserHandle:        request.Response.UserHandle,
 	}
 
+	grouped.DebugContext(ctx, "Parsed credential request")
+
 	err = response.Validate(options.GetOptions(), credential)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.IssueGrant(ctx, credential)
+	grouped.DebugContext(ctx, "Validated credential request")
+
+	result, err := s.IssueGrant(ctx, credential.User)
 	if err != nil {
 		return nil, err
 	}
 
+	grouped.InfoContext(ctx, "Login success")
+
 	return result, nil
 }
 
-func (s *AuthenticationService) IssueGrant(ctx context.Context, credential *domain.Credential) (*Success, error) {
-	grant := domain.NewGrant(credential.User.ID)
+func (s *AuthenticationService) IssueGrant(ctx context.Context, user *domain.User) (*Success, error) {
+	grant := domain.NewGrant(user.ID)
 	grant.AllowRefreshToken = true
 	grant.ExpiresAt = grant.IssuedAt.Add(time.Hour * 24 * 30)
 	grant.NotBefore = grant.IssuedAt
 	grant.Scope = []string{"openid", "profile", "email", "authorization"}
 	grant.ClientID = "central"
-	grant.SubjectID = credential.User.ID
+	grant.SubjectID = user.ID
 	accessToken, refreshToken, err := domain.RegisterGrant(ctx, grant)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("SUCCESS", accessToken, refreshToken)
+	s.logger.DebugContext(ctx, "Issued authentication grant", "userUid", user.ID, "grantId", grant.ID)
 
 	return &Success{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
@@ -270,7 +309,7 @@ func (c *AuthenticationController) initiateAuthentication(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.service.InitiateAuthentication(&request)
+	response, err := c.service.InitiateAuthentication(ctx.Request.Context(), &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",
@@ -291,7 +330,7 @@ func (c *AuthenticationController) createCredential(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.service.Register(ctx.Request.Context(), request.AuthenticationID, &request)
+	result, err := c.service.Register(ctx.Request.Context(), &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid_request",

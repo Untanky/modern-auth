@@ -2,12 +2,12 @@ package oauth2
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type ClientModel struct {
@@ -58,10 +58,12 @@ type ClientWithSecretDTO struct {
 
 type ClientService struct {
 	repo   ClientRepository
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 }
 
-func NewClientService(repo ClientRepository, logger *zap.SugaredLogger) *ClientService {
+func NewClientService(repo ClientRepository) *ClientService {
+	logger := slog.Default().With(slog.String("service", "client"))
+
 	return &ClientService{repo: repo, logger: logger}
 }
 
@@ -70,7 +72,7 @@ func (s *ClientService) FindById(ctx context.Context, id string) (*Client, error
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Infow("Found client", "client_id", client.ID)
+	s.logger.Info("Found client", "client_id", client.ID)
 
 	return &Client{
 		ID:           client.ID,
@@ -84,7 +86,7 @@ func (s *ClientService) List(ctx context.Context) ([]*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Infow("List all clients", "count", len(clients))
+	s.logger.Info("List all clients", "count", len(clients))
 
 	var results []*Client
 	for _, client := range clients {
@@ -107,7 +109,7 @@ func (s *ClientService) Create(ctx context.Context, dto ClientDTO) (*Client, err
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Infow("Created client", "client_id", dto.ID)
+	s.logger.Info("Created client", "client_id", dto.ID)
 
 	client := &Client{
 		ID:           dto.ID,
@@ -130,7 +132,7 @@ func (s *ClientService) Update(ctx context.Context, dto ClientDTO) (*Client, err
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Infow("Updated client", "client_id", dto.ID)
+	s.logger.Info("Updated client", "client_id", dto.ID)
 
 	return &Client{
 		ID:           dto.ID,
@@ -144,7 +146,7 @@ func (s *ClientService) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	s.logger.Infow("Deleted client", "client_id", id)
+	s.logger.Info("Deleted client", "client_id", id)
 	return nil
 }
 
