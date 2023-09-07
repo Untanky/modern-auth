@@ -128,7 +128,6 @@ func (s *AuthorizationService) VerifyAuthentication(uuid string, authenticationV
 
 	decodedVerifier, err := utils.DecodeBase64([]byte(authenticationVerifier))
 	if err != nil {
-		fmt.Println("FAILED HERE!", authenticationVerifier, err)
 		return &AuthorizationError{
 			RedirectUri: "",
 			State:       "",
@@ -139,7 +138,6 @@ func (s *AuthorizationService) VerifyAuthentication(uuid string, authenticationV
 	fmt.Println(decodedVerifier, hashedAuthenticationVerifier)
 
 	if string(hashedAuthenticationVerifier) != string(utils.HashShake256(decodedVerifier)) {
-		fmt.Println("FAILED HERE!!")
 		return &AuthorizationError{
 			RedirectUri: "",
 			State:       "",
