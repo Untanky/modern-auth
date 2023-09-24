@@ -4,7 +4,7 @@ import {
     and, eq, gte,
 } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { shake256 as hasher } from 'js-sha3';
+// import { shake256 as hasher } from 'js-sha3';
 import crypto from 'node:crypto';
 import type { EmailService } from './email.service';
 import type * as schema from './schema';
@@ -26,15 +26,15 @@ const getVerificationLink = ({ id, code }: VerificationParameters): string => {
     return `${BASE_URL}/v1/verification/${id}?code=${code}`;
 };
 
-const hash = (value: string): string => hasher(value, CODE_LENGTH * BITS_IN_NIBBLE);
+// const hash = (value: string): string => hasher(value, CODE_LENGTH * BITS_IN_NIBBLE);
 
 const generateCodeVerifier = (): [string, string] => {
     const random = crypto.randomBytes(64).toString('hex');
-    const code = hash(random);
-    const codeVerifier = hash(code);
+    // const code = hash(random);
+    // const codeVerifier = hash(code);
     return [
-        code,
-        codeVerifier,
+        '',
+        '',
     ];
 };
 
