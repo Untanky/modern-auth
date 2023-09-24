@@ -39,7 +39,7 @@ target authenticator-app {
         "type=gha"
     ]
     cache-to = [
-        "type=gha"
+        "type=gha,mode=max"
     ]
     platforms = [
         "linux/amd64"
@@ -66,7 +66,7 @@ target oauth2 {
         "type=gha"
     ]
     cache-to = [
-        "type=gha"
+        "type=gha,mode=max"
     ]
     platforms = [
         "linux/amd64"
@@ -93,7 +93,7 @@ target webauthn {
         "type=gha"
     ]
     cache-to = [
-        "type=gha"
+        "type=gha,mode=max"
     ]
     platforms = [
         "linux/amd64"
@@ -120,7 +120,7 @@ target passwords {
         "type=gha"
     ]
     cache-to = [
-        "type=gha"
+        "type=gha,mode=max"
     ]
     platforms = [
         "linux/amd64"
