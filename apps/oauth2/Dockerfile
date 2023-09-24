@@ -11,6 +11,8 @@ FROM alpine as app
 
 WORKDIR /app
 
+RUN apk update && apk upgrade
+
 COPY --from=build /build/app .
 
 ENTRYPOINT [ "app" ]
