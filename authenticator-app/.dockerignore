@@ -1,0 +1,4 @@
+.svelte-kit
+.git
+node_modules
+tests
