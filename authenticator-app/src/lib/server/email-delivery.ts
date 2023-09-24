@@ -1,7 +1,6 @@
 import { Resend } from 'resend';
-import { env } from '$env/dynamic/private';
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = new Resend('abc');
 
 export type EmailDeliverable = {
   to: string;
