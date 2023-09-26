@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"context"
+
+	"github.com/Untanky/modern-auth/internal/gin"
+)
 
 func main() {
-	fmt.Println("Hello World")
+	app := gin.NewGinApplication()
+
+	app.Start(context.Background())
 }
