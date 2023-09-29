@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Untanky/modern-auth/internal/app"
 	"github.com/Untanky/modern-auth/internal/core"
 	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
@@ -10,6 +11,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
+	"net/http"
+	"strings"
 )
 
 const (
@@ -110,11 +113,11 @@ func configureRoutes() error {
 	route.GET("/authorization", startAuthorization)
 	route.POST("/authorization/succeed", succeedAuthorization)
 	route.POST("/token", issueToken)
-	route.POST("/token/validate", validateToken)
-	route.GET("/client", listClients)
-	route.GET("/client/:id", getClient)
-	route.POST("/client", createClient)
-	route.DELETE("/client/:id", deleteClient)
+	route.POST("/token/validate", handleAuthorization, returnGrant)
+	route.GET("/client", handleAuthorization, listClients)
+	route.GET("/client/:id", handleAuthorization, getClient)
+	route.POST("/client", handleAuthorization, createClient)
+	route.DELETE("/client/:id", handleAuthorization, deleteClient)
 
 	return nil
 }
@@ -122,4 +125,24 @@ func configureRoutes() error {
 func disableCaching(c *gin.Context) {
 	c.Header(CacheControlHeader, "no-store")
 	c.Next()
+}
+
+func handleAuthorization(ctx *gin.Context) {
+	authorizationHeader := ctx.GetHeader("Authorization")
+	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
+	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
+		err := fmt.Errorf("invalid authorization header")
+		ctx.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+	token := authorizationHeaderParts[1]
+
+	grant, err := tokenService.Validate(ctx.Request.Context(), token)
+	if err != nil {
+		ctx.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+
+	ctx.Set("grant", grant)
+	ctx.Next()
 }

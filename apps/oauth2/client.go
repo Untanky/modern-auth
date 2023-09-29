@@ -11,7 +11,8 @@ var clientService *oauth2.ClientService
 func listClients(ctx *gin.Context) {
 	clients, err := clientService.List(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// TODO: handle Forbidden
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	var dtos = make([]oauth2.ClientDTO, 0, len(clients))
@@ -29,7 +30,8 @@ func getClient(ctx *gin.Context) {
 	id := ctx.Param("id")
 	client, err := clientService.FindById(ctx, id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// TODO: handle NotFound and Forbidden
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, &oauth2.ClientDTO{
@@ -43,13 +45,14 @@ func createClient(ctx *gin.Context) {
 	var dto oauth2.ClientDTO
 	err := ctx.BindJSON(&dto)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// TODO: handle Forbidden
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	client, err := clientService.Create(ctx, dto)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, &oauth2.ClientDTO{
@@ -63,7 +66,8 @@ func deleteClient(ctx *gin.Context) {
 	id := ctx.Param("id")
 	err := clientService.Delete(ctx, id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// TODO: handle NotFound and Forbidden
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	ctx.Status(http.StatusOK)

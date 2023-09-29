@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/trace"
 	"net/http"
-	"strings"
 )
 
 var tokenService *oauth2.OAuthTokenService
@@ -49,22 +47,8 @@ func parseTokenRequest(ctx *gin.Context) (oauth2.TokenRequest, error) {
 	}
 }
 
-func validateToken(ctx *gin.Context) {
-	authorizationHeader := ctx.GetHeader("Authorization")
-	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
-	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
-		err := fmt.Errorf("invalid authorization header")
-		ctx.AbortWithError(http.StatusUnauthorized, err)
-		return
-	}
-	token := authorizationHeaderParts[1]
-
-	grant, err := tokenService.Validate(ctx.Request.Context(), token)
-	if err != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.JSON(http.StatusBadRequest, err)
-		return
-	}
+func returnGrant(ctx *gin.Context) {
+	grant, _ := ctx.Get("grant")
 
 	ctx.JSON(http.StatusOK, grant)
 }
