@@ -7,11 +7,9 @@ import (
 
 	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/internal/utils"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type AuthorizationRequest struct {
@@ -205,55 +203,4 @@ func (s *AuthorizationService) succeed(ctx context.Context, uuid string) Respons
 		State:       request.State,
 		Issuer:      "https://localhost:8080",
 	}
-}
-
-type AuthorizationController struct {
-	authorizationService *AuthorizationService
-}
-
-func NewAuthorizationController(authorizationService *AuthorizationService) *AuthorizationController {
-	return &AuthorizationController{authorizationService: authorizationService}
-}
-
-func (c *AuthorizationController) RegisterRoutes(router gin.IRouter) {
-	router.GET("/authorization", c.authorize)
-	router.GET("/authorization/succeed", c.succeed)
-}
-
-func (c *AuthorizationController) authorize(ctx *gin.Context) {
-	request := &AuthorizationRequest{
-		ClientId:      ctx.Query("client_id"),
-		CodeChallenge: ctx.Query("code_challenge"),
-		CodeMethod:    ctx.Query("code_method"),
-		RedirectUri:   ctx.Query("redirect_uri"),
-		ResponseType:  ctx.Query("response_type"),
-		Scope:         ctx.Query("scope"),
-		State:         ctx.Query("state"),
-	}
-
-	uuid, err := c.authorizationService.Authorize(ctx.Request.Context(), request)
-	if err != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.Redirect(302, err.BuildResponseURI())
-		return
-	}
-	ctx.SetCookie("authorization_id", uuid, 0, "/", "", true, true)
-	ctx.Redirect(302, "/")
-}
-
-func (c *AuthorizationController) succeed(ctx *gin.Context) {
-	uuid, err := ctx.Cookie("authorization_id")
-	if err != nil {
-		ctx.Redirect(302, "/")
-		return
-	}
-	authenticationVerifier, err := ctx.Cookie("authentication_verifier")
-	if err != nil {
-		ctx.Redirect(302, "/")
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		return
-	}
-	response := c.authorizationService.VerifyAuthentication(ctx.Request.Context(), uuid, authenticationVerifier)
-	ctx.SetCookie("authorization", "", -1, "/", "", false, true)
-	ctx.Redirect(302, response.BuildResponseURI())
 }

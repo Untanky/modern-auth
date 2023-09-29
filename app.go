@@ -54,51 +54,7 @@ func (a *App) Start() {
 	}
 
 	slog.Debug("Initialize services starting")
-	clientRepo := gormLocal.NewGormRepository[string, *oauth2.ClientModel, *oauth2.ClientModel](
-		a.db,
-		func(a *oauth2.ClientModel) *oauth2.ClientModel {
-			return a
-		},
-		func(a *oauth2.ClientModel) *oauth2.ClientModel {
-			return a
-		},
-	)
-	clientService := oauth2.NewClientService(clientRepo)
-	clientController := oauth2.NewClientController(clientService)
-
 	authenticationVerifierStore := core.NewInMemoryKeyValueStore[[]byte]()
-
-	authorizationStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
-	codeStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationRequest]()
-	authorizationCodeInit, err := meter.Int64Counter("authorization_code_init")
-	if err != nil {
-		log.Fatal(err)
-	}
-	authorizationCodeSuccess, err := meter.Int64Counter("authorization_code_success")
-	if err != nil {
-		log.Fatal(err)
-	}
-	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, authenticationVerifierStore, clientService, authorizationCodeInit, authorizationCodeSuccess)
-	authorizationController := oauth2.NewAuthorizationController(authorizationService)
-
-	accessTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
-	accessTokensGenerated, err := meter.Int64Counter("access_tokens_generated")
-	if err != nil {
-		log.Fatal(err)
-	}
-	accessTokenHandler := oauth2.NewRandomTokenHandler("access-token", 48, accessTokenStore, accessTokensGenerated)
-	refreshTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
-	refreshTokensGenerated, err := meter.Int64Counter("refresh_tokens_generated")
-	if err != nil {
-		log.Fatal(err)
-	}
-	refreshTokenHandler := oauth2.NewRandomTokenHandler("refresh-token", 64, refreshTokenStore, refreshTokensGenerated)
-	tokenRequest, err := meter.Int64Counter("token_request")
-	if err != nil {
-		log.Fatal(err)
-	}
-	oauthTokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, tokenRequest)
-	tokenController := oauth2.NewTokenController(oauthTokenService)
 
 	initAuthnStore := core.NewInMemoryKeyValueStore[webauthn.CredentialOptions]()
 	userRepo := gormLocal.NewGormUserRepo(a.db)
@@ -122,10 +78,6 @@ func (a *App) Start() {
 
 	api := r.Group("/v1")
 	slog.Debug("Router setup starting")
-	clientController.RegisterRoutes(api.Group("/client"))
-	oauth2Router := api.Group("/oauth2")
-	authorizationController.RegisterRoutes(oauth2Router)
-	tokenController.RegisterRoutes(oauth2Router)
 	authenticationController.RegisterRoutes(api.Group("/webauthn"))
 	slog.Info("Router setup successful")
 

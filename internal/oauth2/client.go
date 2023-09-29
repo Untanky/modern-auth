@@ -3,11 +3,9 @@ package oauth2
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"strings"
 
 	"github.com/Untanky/modern-auth/internal/core"
-	"github.com/gin-gonic/gin"
 )
 
 type ClientModel struct {
@@ -148,80 +146,4 @@ func (s *ClientService) Delete(ctx context.Context, id string) error {
 	}
 	s.logger.Info("Deleted client", "client_id", id)
 	return nil
-}
-
-type ClientController struct {
-	service *ClientService
-}
-
-func NewClientController(service *ClientService) *ClientController {
-	return &ClientController{service: service}
-}
-
-func (c *ClientController) RegisterRoutes(router gin.IRouter) {
-	router.GET("", c.list)
-	router.GET("/:id", c.get)
-	router.POST("", c.create)
-	router.DELETE("/:id", c.delete)
-}
-
-func (c *ClientController) list(ctx *gin.Context) {
-	clients, err := c.service.List(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	var dtos []ClientDTO = make([]ClientDTO, 0, len(clients))
-	for _, client := range clients {
-		dtos = append(dtos, ClientDTO{
-			ID:           client.ID,
-			Scopes:       client.Scopes,
-			RedirectURIs: client.RedirectURIs,
-		})
-	}
-	ctx.JSON(http.StatusOK, dtos)
-}
-
-func (c *ClientController) get(ctx *gin.Context) {
-	id := ctx.Param("id")
-	client, err := c.service.FindById(ctx, id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, &ClientDTO{
-		ID:           client.ID,
-		Scopes:       client.Scopes,
-		RedirectURIs: client.RedirectURIs,
-	})
-}
-
-func (c *ClientController) create(ctx *gin.Context) {
-	var dto ClientDTO
-	err := ctx.BindJSON(&dto)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	client, err := c.service.Create(ctx, dto)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusCreated, &ClientDTO{
-		ID:           client.ID,
-		Scopes:       client.Scopes,
-		RedirectURIs: client.RedirectURIs,
-	})
-}
-
-func (c *ClientController) delete(ctx *gin.Context) {
-	id := ctx.Param("id")
-	err := c.service.Delete(ctx, id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.Status(http.StatusOK)
 }

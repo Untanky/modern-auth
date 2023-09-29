@@ -18,8 +18,7 @@ const (
 )
 
 var (
-	route gin.IRouter
-	db    *gorm.DB
+	db *gorm.DB
 )
 
 func main() {
@@ -29,10 +28,6 @@ func main() {
 		app.Step("Service initialization", initializeServices),
 		app.Step("Gin configuration", app.ConfigureGin),
 		app.Step("Telemetry configuration", app.ConfigureTelemetry),
-		func() error {
-			route = app.GetRouter(ContextPath)
-			return nil
-		},
 		app.Step("Routing configuration", configureRoutes),
 	)
 	if err != nil {
@@ -109,15 +104,17 @@ func initializeServices() error {
 }
 
 func configureRoutes() error {
+	route := app.GetRouter(ContextPath)
+
 	route.Use(disableCaching)
 	route.GET("/authorization", startAuthorization)
 	route.POST("/authorization/succeed", succeedAuthorization)
 	route.POST("/token", issueToken)
 	route.POST("/token/validate", validateToken)
-	route.GET("/client")
-	route.GET("/client/:id")
-	route.POST("/client")
-	route.DELETE("/client/:id")
+	route.GET("/client", listClients)
+	route.GET("/client/:id", getClient)
+	route.POST("/client", createClient)
+	route.DELETE("/client/:id", deleteClient)
 
 	return nil
 }
