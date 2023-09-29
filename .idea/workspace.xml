@@ -4,9 +4,13 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Revert abstraction layers over gin...">
-      <change afterPath="$PROJECT_DIR$/internal/app/gin.go" afterDir="false" />
+    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Moved handler implementations to new package">
+      <change afterPath="$PROJECT_DIR$/apps/oauth2/client.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/app/initialization.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/oauth2/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/token.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/app/gin.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/app/gin.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,33 +42,47 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
-    "go.import.settings.migrated": "true",
-    "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/lukas/go/src/github.com/Untanky/modern-auth",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "settings.editor.selected.configurable": "reference.settings.ide.settings.new.ui"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.automatic.dependencies.download&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/lukas/go/src/github.com/Untanky/modern-auth&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;
   }
-}]]></component>
+}</component>
+  <component name="RunManager">
+    <configuration name="Start OAuth2" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="modern-auth" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/Untanky/modern-auth/apps/oauth2" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <output_directory value="./dist" />
+      <method v="2" />
+    </configuration>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Revert abstraction layers over gin..." />
-    <option name="LAST_COMMIT_MESSAGE" value="Revert abstraction layers over gin..." />
+    <MESSAGE value="Move app bootstrapping code to different package" />
+    <MESSAGE value="Moved handler implementations to new package" />
+    <option name="LAST_COMMIT_MESSAGE" value="Moved handler implementations to new package" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

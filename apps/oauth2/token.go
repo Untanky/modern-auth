@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var tokenService oauth2.OAuthTokenService
+var tokenService *oauth2.OAuthTokenService
 
 func issueToken(ctx *gin.Context) {
 	tokenRequest, err := parseTokenRequest(ctx)

@@ -15,11 +15,20 @@ const (
 )
 
 var (
+	engine                 *gin.Engine
 	requestsInstrument     metric.Int64Counter
 	errorsInstrument       metric.Int64Counter
 	latencyInstrument      metric.Int64Histogram
 	responseSizeInstrument metric.Int64Histogram
 )
+
+func GetRouter(relativePath string) gin.IRouter {
+	return engine.Group(relativePath)
+}
+
+func Start() error {
+	return engine.Run()
+}
 
 type writeFunc func([]byte) (int, error)
 
@@ -27,19 +36,20 @@ func (fn writeFunc) Write(data []byte) (int, error) {
 	return fn(data)
 }
 
-func ConfigureGin() *gin.Engine {
+func ConfigureGin() error {
 	gin.DefaultWriter = writeFunc(func(data []byte) (int, error) {
-		slog.Info(string(data))
+		slog.Debug(string(data))
 		return 0, nil
 	})
-	engine := gin.Default()
+	engine = gin.Default()
 	engine.Use(gin.Recovery())
 
-	return engine
+	return nil
 }
 
-func ConfigureTelemetry(router gin.IRoutes) error {
-	meter := otel.GetMeterProvider().Meter("github.com/Untanky/modern-auth/oauth2/http")
+func ConfigureTelemetry() error {
+	// TODO: Fix path
+	meter := otel.GetMeterProvider().Meter("github.com/Untanky/modern-auth/http")
 
 	var err error
 	requestsInstrument, err = meter.Int64Counter("requestsInstrument")
@@ -59,7 +69,7 @@ func ConfigureTelemetry(router gin.IRoutes) error {
 		return err
 	}
 
-	router.Use(handleRequestId, handleRequestTelemetry, handleError)
+	engine.Use(handleRequestId, handleRequestTelemetry, handleError)
 
 	return nil
 }
