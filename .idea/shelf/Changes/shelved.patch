@@ -1,0 +1,245 @@
+Index: .idea/modern-auth.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modern-auth.iml b/.idea/modern-auth.iml
+new file mode 100644
+--- /dev/null	(date 1695743356714)
++++ b/.idea/modern-auth.iml	(date 1695743356714)
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="WEB_MODULE" version="4">
++  <component name="Go" enabled="true" />
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$" />
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1695743356724)
++++ b/.idea/modules.xml	(date 1695743356724)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/modern-auth.iml" filepath="$PROJECT_DIR$/.idea/modern-auth.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+Index: internal/app/module.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package app\n\nimport (\n\t\"context\"\n)\n\n// Interface describing an application module\ntype Module interface {\n\tStart(ctx context.Context) error\n\tStop(ctx context.Context) error\n\tRegisterModule(module ...Module)\n\tGetControllers() []Controller\n}\n\ntype Controller interface {\n\tModule\n\tRegisterRoutes(ctx context.Context) error\n}\n\ntype baseModule struct {\n\tchildModules []Module\n}\n\nfunc NewBaseModule() Module {\n\treturn &baseModule{\n\t\t// assumption is 4, this allocates little memory initially\n\t\t// should module become larger than 4 *direct* submodules\n\t\t// increase this number\n\t\tchildModules: make([]Module, 4),\n\t}\n}\n\nfunc (base *baseModule) GetControllers() []Controller {\n\t// TODO: find heuristic to allocate enougth space, but not too much memory\n\t// maybe 2 * len(base.childModules)\n\tcontrollers := make([]Controller, 8)\n\tfor _, module := range base.childModules {\n\t\tcontrollers = append(controllers, module.GetControllers()...)\n\t}\n\treturn controllers\n}\n\n// RegisterModule implements Module.\nfunc (base *baseModule) RegisterModule(modules ...Module) {\n\tbase.childModules = append(base.childModules, modules...)\n}\n\n// Start implements Module.\nfunc (base *baseModule) Start(ctx context.Context) error {\n\tfor _, module := range base.childModules {\n\t\tmodule.Start(ctx)\n\t}\n\treturn nil\n}\n\n// Stop implements Module.\nfunc (base *baseModule) Stop(ctx context.Context) error {\n\tfor _, module := range base.childModules {\n\t\tmodule.Start(ctx)\n\t}\n\treturn nil\n}\n\nvar _ Module = &baseModule{}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/internal/app/module.go b/internal/app/module.go
+--- a/internal/app/module.go	(revision d2cce479372d79bcbba950eefcb83fdaa9a68a8c)
++++ b/internal/app/module.go	(date 1695745181917)
+@@ -13,7 +13,6 @@
+ }
+ 
+ type Controller interface {
+-	Module
+ 	RegisterRoutes(ctx context.Context) error
+ }
+ 
+@@ -30,8 +29,12 @@
+ 	}
+ }
+ 
++func (base *baseModule) AddController(controller Controller) {
++	base.controllers = append(base.controllers, controller)
++}
++
+ func (base *baseModule) GetControllers() []Controller {
+-	// TODO: find heuristic to allocate enougth space, but not too much memory
++	// TODO: find heuristic to allocate enough space, but not too much memory
+ 	// maybe 2 * len(base.childModules)
+ 	controllers := make([]Controller, 8)
+ 	for _, module := range base.childModules {
+@@ -61,4 +64,50 @@
+ 	return nil
+ }
+ 
+-var _ Module = &baseModule{}
++type ControllerModule struct {
++	controllers []Controller
++}
++
++func NewControllerModule() Module {
++	return &ControllerModule{
++		// assumption is 4, this allocates little memory initially
++		// should module become larger than 4 *direct* submodules
++		// increase this number
++		childModules: make([]Module, 4),
++	}
++}
++
++func (base *ControllerModule) AddController(controller Controller) {
++	base.controllers = append(base.controllers, controller)
++}
++
++func (base *ControllerModule) GetControllers() []Controller {
++	// TODO: find heuristic to allocate enough space, but not too much memory
++	// maybe 2 * len(base.childModules)
++	controllers := make([]Controller, 8)
++	for _, module := range base.childModules {
++		controllers = append(controllers, module.GetControllers()...)
++	}
++	return controllers
++}
++
++// RegisterModule implements Module.
++func (base *ControllerModule) RegisterModule(modules ...Module) {
++	base.childModules = append(base.childModules, modules...)
++}
++
++// Start implements Module.
++func (base *ControllerModule) Start(ctx context.Context) error {
++	for _, module := range base.childModules {
++		module.Start(ctx)
++	}
++	return nil
++}
++
++// Stop implements Module.
++func (base *ControllerModule) Stop(ctx context.Context) error {
++	for _, module := range base.childModules {
++		module.Start(ctx)
++	}
++	return nil
++}
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1695743356739)
++++ b/.idea/vcs.xml	(date 1695743356739)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1695743356852)
++++ b/.idea/.gitignore	(date 1695743356852)
+@@ -0,0 +1,8 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Editor-based HTTP Client requests
++/httpRequests/
++# Datasource local storage ignored files
++/dataSources/
++/dataSources.local.xml
+Index: apps/oauth2/main.go
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package main\n\nimport (\n\t\"context\"\n\n\t\"github.com/Untanky/modern-auth/internal/gin\"\n)\n\nfunc main() {\n\tapp := gin.NewGinApplication()\n\n\tapp.Start(context.Background())\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/apps/oauth2/main.go b/apps/oauth2/main.go
+--- a/apps/oauth2/main.go	(revision d2cce479372d79bcbba950eefcb83fdaa9a68a8c)
++++ b/apps/oauth2/main.go	(date 1695743908472)
+@@ -2,12 +2,74 @@
+ 
+ import (
+ 	"context"
++	"github.com/Untanky/modern-auth/internal/app"
++	"log"
++	"os"
+ 
+ 	"github.com/Untanky/modern-auth/internal/gin"
++	"go.opentelemetry.io/otel"
++	"go.opentelemetry.io/otel/exporters/jaeger"
++	"go.opentelemetry.io/otel/exporters/prometheus"
++	api "go.opentelemetry.io/otel/metric"
++	"go.opentelemetry.io/otel/sdk/metric"
++	"go.opentelemetry.io/otel/sdk/resource"
++	"go.opentelemetry.io/otel/sdk/trace"
++	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
++	"log/slog"
+ )
++
++var meter api.Meter
++
++func init() {
++	traceExporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:14268/api/traces")))
++	if err != nil {
++		log.Fatal(err)
++	}
++	mergedResource, err := resource.Merge(
++		resource.Default(),
++		resource.NewWithAttributes(
++			semconv.SchemaURL,
++			semconv.ServiceName("ModernAuth/OAuth2"),
++		),
++	)
++
++	if err != nil {
++		log.Fatal(err)
++	}
++
++	tracerProvider := trace.NewTracerProvider(
++		trace.WithBatcher(traceExporter),
++		trace.WithResource(mergedResource),
++	)
++
++	otel.SetTracerProvider(tracerProvider)
++
++	slogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
++		Level: slog.LevelDebug,
++	}))
++	slog.SetDefault(slogger)
++
++	meterExporter, err := prometheus.New()
++	if err != nil {
++		log.Fatal(err)
++	}
++	meterProvider := metric.NewMeterProvider(metric.WithReader(meterExporter))
++
++	meter = meterProvider.Meter("github.com/Untanky/modern-auth/apps/oauth2")
++
++	otel.SetMeterProvider(meterProvider)
++}
+ 
+ func main() {
+-	app := gin.NewGinApplication()
++	ginApp := gin.NewGinApplication()
++
++	telemetryModule := app.NewBaseModule()
+ 
+-	app.Start(context.Background())
++	telemetryController, err := gin.NewTelemetryController(meter)
++	if err != nil {
++		panic(err)
++	}
++	ginApp.RegisterModule(telemetryController)
++
++	ginApp.Start(context.Background())
+ }
