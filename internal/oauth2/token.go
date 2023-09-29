@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Untanky/modern-auth/internal/core"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type TokenRequest interface {
@@ -287,76 +283,4 @@ func (h *RandomTokenHandler) Validate(ctx context.Context, token string) (*Autho
 	}
 	h.logger.Debug("Successfully validated token", "authorization_id", grant.ID)
 	return grant, err
-}
-
-type TokenController struct {
-	tokenService *OAuthTokenService
-}
-
-func NewTokenController(tokenService *OAuthTokenService) *TokenController {
-	return &TokenController{tokenService: tokenService}
-}
-
-func (c *TokenController) RegisterRoutes(router gin.IRouter) {
-	router.POST("/token", c.token)
-	router.POST("/token/validate", c.validate)
-}
-
-func (c *TokenController) token(ctx *gin.Context) {
-	var temp tokenRequest
-	var tokenRequest TokenRequest
-	var err error
-	if err = ctx.ShouldBind(&temp); err != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.JSON(http.StatusBadRequest, err)
-		return
-	}
-
-	switch temp.GrantType {
-	case "authorization_code":
-		var authorizationCodeTokenRequest AuthorizationCodeTokenRequest
-		err = ctx.ShouldBind(&authorizationCodeTokenRequest)
-		tokenRequest = &authorizationCodeTokenRequest
-	case "refresh_token":
-		var refreshTokenRequest RefreshTokenRequest
-		err = ctx.ShouldBind(&refreshTokenRequest)
-		tokenRequest = &refreshTokenRequest
-	default:
-		err = fmt.Errorf("invalid grant type: %s", temp.GrantType)
-	}
-	if err != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.JSON(http.StatusBadRequest, err)
-		return
-	}
-
-	tokenResponse, tokenError := c.tokenService.Token(ctx.Request.Context(), tokenRequest)
-	if tokenError != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(tokenError)
-		ctx.JSON(http.StatusBadRequest, tokenError)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, tokenResponse)
-}
-
-func (c *TokenController) validate(ctx *gin.Context) {
-	authorizationHeader := ctx.GetHeader("Authorization")
-	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
-	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
-		err := fmt.Errorf("invalid authorization header")
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-	token := authorizationHeaderParts[1]
-
-	grant, err := c.tokenService.Validate(ctx.Request.Context(), token)
-	if err != nil {
-		trace.SpanFromContext(ctx.Request.Context()).RecordError(err)
-		ctx.JSON(http.StatusBadRequest, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, grant)
 }

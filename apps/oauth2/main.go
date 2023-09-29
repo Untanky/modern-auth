@@ -42,10 +42,10 @@ func main() {
 
 func configureRoutes(route gin.IRouter) {
 	route.Use(disableCaching)
-	route.GET("/authorization")
-	route.POST("/authorization/succeed")
-	route.POST("/token")
-	route.POST("/token/validate")
+	route.GET("/authorization", startAuthorization)
+	route.POST("/authorization/succeed", succeedAuthorization)
+	route.POST("/token", issueToken)
+	route.POST("/token/validate", validateToken)
 	route.GET("/client")
 	route.GET("/client/:id")
 	route.POST("/client")

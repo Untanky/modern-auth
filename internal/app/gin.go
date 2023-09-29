@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"time"
 )
@@ -58,7 +59,7 @@ func ConfigureTelemetry(router gin.IRoutes) error {
 		return err
 	}
 
-	router.Use(handleRequestId, handleRequestTelemetry)
+	router.Use(handleRequestId, handleRequestTelemetry, handleError)
 
 	return nil
 }
@@ -113,5 +114,14 @@ func handleRequestTelemetry(c *gin.Context) {
 		slog.Error(msg, fields...)
 	} else {
 		slog.Debug(msg, fields...)
+	}
+}
+
+func handleError(ctx *gin.Context) {
+	ctx.Next()
+
+	for _, err := range ctx.Errors {
+		trace.SpanFromContext(ctx).RecordError(err)
+		slog.ErrorContext(ctx, "Encountered error", "err", err)
 	}
 }
