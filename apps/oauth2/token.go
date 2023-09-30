@@ -7,16 +7,14 @@ import (
 	"net/http"
 )
 
-var tokenService *oauth2.OAuthTokenService
-
-func issueToken(ctx *gin.Context) {
-	tokenRequest, err := parseTokenRequest(ctx)
+func (controller *controller) issueToken(ctx *gin.Context) {
+	tokenRequest, err := controller.parseTokenRequest(ctx)
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	tokenResponse, tokenError := tokenService.Token(ctx.Request.Context(), tokenRequest)
+	tokenResponse, tokenError := controller.tokenService.Token(ctx.Request.Context(), tokenRequest)
 	if tokenError != nil {
 		ctx.AbortWithError(http.StatusBadRequest, tokenError)
 		return
@@ -25,7 +23,7 @@ func issueToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, tokenResponse)
 }
 
-func parseTokenRequest(ctx *gin.Context) (oauth2.TokenRequest, error) {
+func (controller *controller) parseTokenRequest(ctx *gin.Context) (oauth2.TokenRequest, error) {
 	var temp struct {
 		GrantType string `form:"grant_type" binding:"required"`
 	}
@@ -47,7 +45,7 @@ func parseTokenRequest(ctx *gin.Context) (oauth2.TokenRequest, error) {
 	}
 }
 
-func returnGrant(ctx *gin.Context) {
+func (controller *controller) returnGrant(ctx *gin.Context) {
 	grant, _ := ctx.Get("grant")
 
 	ctx.JSON(http.StatusOK, grant)

@@ -6,10 +6,8 @@ import (
 	"net/http"
 )
 
-var clientService *oauth2.ClientService
-
-func listClients(ctx *gin.Context) {
-	clients, err := clientService.List(ctx)
+func (controller *controller) listClients(ctx *gin.Context) {
+	clients, err := controller.clientService.List(ctx)
 	if err != nil {
 		// TODO: handle Forbidden
 		ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -26,9 +24,9 @@ func listClients(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dtos)
 }
 
-func getClient(ctx *gin.Context) {
+func (controller *controller) getClient(ctx *gin.Context) {
 	id := ctx.Param("id")
-	client, err := clientService.FindById(ctx, id)
+	client, err := controller.clientService.FindById(ctx, id)
 	if err != nil {
 		// TODO: handle NotFound and Forbidden
 		ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -41,7 +39,7 @@ func getClient(ctx *gin.Context) {
 	})
 }
 
-func createClient(ctx *gin.Context) {
+func (controller *controller) createClient(ctx *gin.Context) {
 	var dto oauth2.ClientDTO
 	err := ctx.BindJSON(&dto)
 	if err != nil {
@@ -50,7 +48,7 @@ func createClient(ctx *gin.Context) {
 		return
 	}
 
-	client, err := clientService.Create(ctx, dto)
+	client, err := controller.clientService.Create(ctx, dto)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -62,9 +60,9 @@ func createClient(ctx *gin.Context) {
 	})
 }
 
-func deleteClient(ctx *gin.Context) {
+func (controller *controller) deleteClient(ctx *gin.Context) {
 	id := ctx.Param("id")
-	err := clientService.Delete(ctx, id)
+	err := controller.clientService.Delete(ctx, id)
 	if err != nil {
 		// TODO: handle NotFound and Forbidden
 		ctx.AbortWithError(http.StatusInternalServerError, err)

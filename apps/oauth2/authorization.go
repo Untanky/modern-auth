@@ -6,9 +6,7 @@ import (
 	"net/http"
 )
 
-var authorizationService *oauth2.AuthorizationService
-
-func startAuthorization(ctx *gin.Context) {
+func (controller *controller) startAuthorization(ctx *gin.Context) {
 	request := &oauth2.AuthorizationRequest{}
 	err := ctx.ShouldBindQuery(request)
 	if err != nil {
@@ -16,7 +14,7 @@ func startAuthorization(ctx *gin.Context) {
 		return
 	}
 
-	uuid, authorizationErr := authorizationService.Authorize(ctx.Request.Context(), request)
+	uuid, authorizationErr := controller.authorizationService.Authorize(ctx.Request.Context(), request)
 	if authorizationErr != nil {
 		ctx.Error(authorizationErr)
 		ctx.Redirect(302, authorizationErr.BuildResponseURI())
@@ -26,7 +24,7 @@ func startAuthorization(ctx *gin.Context) {
 	ctx.Redirect(302, "/")
 }
 
-func succeedAuthorization(ctx *gin.Context) {
+func (controller *controller) succeedAuthorization(ctx *gin.Context) {
 	uuid, err := ctx.Cookie("authorization_id")
 	if err != nil {
 		ctx.Error(err)
@@ -39,7 +37,7 @@ func succeedAuthorization(ctx *gin.Context) {
 		ctx.Redirect(302, "/")
 		return
 	}
-	response := authorizationService.VerifyAuthentication(ctx.Request.Context(), uuid, authenticationVerifier)
+	response := controller.authorizationService.VerifyAuthentication(ctx.Request.Context(), uuid, authenticationVerifier)
 	ctx.SetCookie("authorization", "", -1, "/", "", false, true)
 	ctx.Redirect(302, response.BuildResponseURI())
 }

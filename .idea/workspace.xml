@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Moved client implementation to new package">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/authorization.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/authorization.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/oauth2/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/oauth2/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/oauth2/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/token.go" afterDir="false" />

@@ -67,7 +67,7 @@ func initializeServices() error {
 			return a
 		},
 	)
-	clientService = oauth2.NewClientService(clientRepo)
+	clientService := oauth2.NewClientService(clientRepo)
 
 	authenticationVerifierStore := core.NewInMemoryKeyValueStore[[]byte]()
 
@@ -83,7 +83,7 @@ func initializeServices() error {
 	if err != nil {
 		return err
 	}
-	authorizationService = oauth2.NewAuthorizationService(authorizationStore, codeStore, authenticationVerifierStore, clientService, authorizationCodeInit, authorizationCodeSuccess)
+	authorizationService := oauth2.NewAuthorizationService(authorizationStore, codeStore, authenticationVerifierStore, clientService, authorizationCodeInit, authorizationCodeSuccess)
 
 	accessTokenStore := core.NewInMemoryKeyValueStore[*oauth2.AuthorizationGrant]()
 	accessTokensGenerated, err := meter.Int64Counter("access_tokens_generated")
@@ -101,7 +101,9 @@ func initializeServices() error {
 	if err != nil {
 		return err
 	}
-	tokenService = oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, tokenRequest)
+	tokenService := oauth2.NewOAuthTokenService(codeStore, accessTokenHandler, refreshTokenHandler, tokenRequest)
+
+	controllerInstance = newController(authorizationService, clientService, tokenService)
 
 	return nil
 }
@@ -110,14 +112,14 @@ func configureRoutes() error {
 	route := app.GetRouter(ContextPath)
 
 	route.Use(disableCaching)
-	route.GET("/authorization", startAuthorization)
-	route.POST("/authorization/succeed", succeedAuthorization)
-	route.POST("/token", issueToken)
-	route.POST("/token/validate", handleAuthorization, returnGrant)
-	route.GET("/client", handleAuthorization, listClients)
-	route.GET("/client/:id", handleAuthorization, getClient)
-	route.POST("/client", handleAuthorization, createClient)
-	route.DELETE("/client/:id", handleAuthorization, deleteClient)
+	route.GET("/authorization", controllerInstance.startAuthorization)
+	route.POST("/authorization/succeed", controllerInstance.succeedAuthorization)
+	route.POST("/token", controllerInstance.issueToken)
+	route.POST("/token/validate", controllerInstance.handleAuthorization, controllerInstance.returnGrant)
+	route.GET("/client", controllerInstance.handleAuthorization, controllerInstance.listClients)
+	route.GET("/client/:id", controllerInstance.handleAuthorization, controllerInstance.getClient)
+	route.POST("/client", controllerInstance.handleAuthorization, controllerInstance.createClient)
+	route.DELETE("/client/:id", controllerInstance.handleAuthorization, controllerInstance.deleteClient)
 
 	return nil
 }
@@ -127,7 +129,23 @@ func disableCaching(c *gin.Context) {
 	c.Next()
 }
 
-func handleAuthorization(ctx *gin.Context) {
+var controllerInstance *controller
+
+type controller struct {
+	authorizationService *oauth2.AuthorizationService
+	clientService        *oauth2.ClientService
+	tokenService         *oauth2.OAuthTokenService
+}
+
+func newController(authorizationService *oauth2.AuthorizationService, clientService *oauth2.ClientService, tokenService *oauth2.OAuthTokenService) *controller {
+	return &controller{
+		authorizationService: authorizationService,
+		clientService:        clientService,
+		tokenService:         tokenService,
+	}
+}
+
+func (controller *controller) handleAuthorization(ctx *gin.Context) {
 	authorizationHeader := ctx.GetHeader("Authorization")
 	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
 	if len(authorizationHeaderParts) != 2 || authorizationHeaderParts[0] != "Bearer" {
@@ -137,7 +155,7 @@ func handleAuthorization(ctx *gin.Context) {
 	}
 	token := authorizationHeaderParts[1]
 
-	grant, err := tokenService.Validate(ctx.Request.Context(), token)
+	grant, err := controller.tokenService.Validate(ctx.Request.Context(), token)
 	if err != nil {
 		ctx.AbortWithError(http.StatusUnauthorized, err)
 		return
