@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/Untanky/modern-auth/registry"
 	"log/slog"
@@ -17,9 +16,7 @@ type healthCheckTarget struct {
 	healthyStatus    int
 	healthyThreshold int
 
-	preparedRequest *http.Request
-	ctx             context.Context
-
+	preparedRequest  *http.Request
 	healthyMessage   string
 	unhealthyMessage string
 	failedMessage    string
@@ -29,7 +26,7 @@ type healthCheckTarget struct {
 	healthyCount int
 }
 
-func newHealthCheckTarget(ctx context.Context, healthCheck *registry.HealthCheck) (*healthCheckTarget, error) {
+func newHealthCheckTarget(healthCheck *registry.HealthCheck) (*healthCheckTarget, error) {
 	request, err := http.NewRequest("GET", healthCheck.Endpoint, nil)
 	if err != nil {
 		return nil, err
@@ -42,7 +39,6 @@ func newHealthCheckTarget(ctx context.Context, healthCheck *registry.HealthCheck
 		healthyThreshold: int(healthCheck.HealthyThreshold),
 
 		preparedRequest: request,
-		ctx:             ctx,
 
 		healthyMessage:   fmt.Sprintf("Checked health of endpoint '%s'. Endpoint is healthy", healthCheck.Endpoint),
 		unhealthyMessage: fmt.Sprintf("Checked health of endpoint '%s'. Endpoint is unhealthy", healthCheck.Endpoint),
@@ -83,11 +79,11 @@ func (target *healthCheckTarget) LogStatus() {
 
 	switch status {
 	case "healthy":
-		slog.InfoContext(target.ctx, target.healthyMessage, attr)
+		slog.Info(target.healthyMessage, attr)
 	case "unhealthy":
-		slog.WarnContext(target.ctx, target.unhealthyMessage, attr)
+		slog.Warn(target.unhealthyMessage, attr)
 	case "failed":
-		slog.ErrorContext(target.ctx, target.failedMessage, attr)
+		slog.Error(target.failedMessage, attr)
 	}
 }
 

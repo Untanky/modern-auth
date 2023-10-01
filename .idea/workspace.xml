@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Started implementing registry app">
-      <change afterPath="$PROJECT_DIR$/apps/registry/health_check.go" afterDir="false" />
+    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Started implementing health checks">
+      <change afterPath="$PROJECT_DIR$/internal/app/listener.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/registry/health_check.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/registry/health_check.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/registry/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/registry/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/registry/registry.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/registry/registry.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/registry/registry.proto" beforeDir="false" afterPath="$PROJECT_DIR$/registry/registry.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/registry/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/registry/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/app/gin.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/gin/gin.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,6 +72,14 @@
     ]
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="GoMoveDeclarationDialog.RECENT_KEY">
+      <recent name="$PROJECT_DIR$/internal/app" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/internal/gin" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="Start OAuth2" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="modern-auth" />
@@ -110,7 +118,8 @@
     <MESSAGE value="Started implementing api spec" />
     <MESSAGE value="Implement registry through gRPC and protobuffers" />
     <MESSAGE value="Started implementing registry app" />
-    <option name="LAST_COMMIT_MESSAGE" value="Started implementing registry app" />
+    <MESSAGE value="Started implementing health checks" />
+    <option name="LAST_COMMIT_MESSAGE" value="Started implementing health checks" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

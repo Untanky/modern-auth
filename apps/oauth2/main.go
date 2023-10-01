@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Untanky/modern-auth/internal/app"
 	"github.com/Untanky/modern-auth/internal/core"
+	ginApp "github.com/Untanky/modern-auth/internal/gin"
 	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
 	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
@@ -29,15 +30,15 @@ func main() {
 		"Application initialization",
 		app.Step("Database initialization", initializeDatabase),
 		app.Step("Service initialization", initializeServices),
-		app.Step("Gin configuration", app.ConfigureGin),
-		app.Step("Telemetry configuration", app.ConfigureTelemetry),
+		app.Step("Gin configuration", ginApp.ConfigureGin),
+		app.Step("Telemetry configuration", ginApp.ConfigureTelemetry),
 		app.Step("Routing configuration", configureRoutes),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	err = app.AnnounceRun("Application", app.Start)
+	err = app.AnnounceRun("Application", ginApp.Start)
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +110,7 @@ func initializeServices() error {
 }
 
 func configureRoutes() error {
-	route := app.GetRouter(ContextPath)
+	route := ginApp.GetRouter(ContextPath)
 
 	route.Use(disableCaching)
 	route.GET("/authorization", controllerInstance.startAuthorization)
