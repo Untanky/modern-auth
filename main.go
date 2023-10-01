@@ -1,7 +1,7 @@
 package main
 
-func main() {
-	app := App{}
-	app.Start()
-	defer app.Stop()
-}
+//func main() {
+//	app := App{}
+//	app.Start()
+//	defer app.Stop()
+//}

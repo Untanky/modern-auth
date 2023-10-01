@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Untanky/modern-auth/internal/oauth2"
+	"github.com/Untanky/modern-auth/apps/oauth2/internal/oauth2"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

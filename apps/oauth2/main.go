@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/Untanky/modern-auth/apps/oauth2/internal/oauth2"
 	"github.com/Untanky/modern-auth/internal/app"
 	"github.com/Untanky/modern-auth/internal/core"
 	ginApp "github.com/Untanky/modern-auth/internal/gin"
 	gormLocal "github.com/Untanky/modern-auth/internal/gorm"
-	"github.com/Untanky/modern-auth/internal/oauth2"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
 	"gorm.io/driver/postgres"

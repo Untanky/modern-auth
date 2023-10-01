@@ -4,13 +4,25 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Started implementing health checks">
-      <change afterPath="$PROJECT_DIR$/internal/app/listener.go" afterDir="false" />
+    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Refactor files a bit">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.go" beforeDir="false" afterPath="$PROJECT_DIR$/app.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/authorization.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/authorization.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/oauth2/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/registry/health_check.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/registry/health_check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/registry/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/registry/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/app/gin.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/gin/gin.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/oauth2/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/token.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/oauth2/authorization.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/internal/oauth2/authorization.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/oauth2/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/internal/oauth2/client.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/oauth2/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/internal/oauth2/token.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/oauth2/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/internal/oauth2/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/attestation_statement.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/attestation_statement.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/authentication.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/authentication.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/creation.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/creation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/dto.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/dto.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/public_key.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/public_key.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/webauthn/request.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/webauthn/internal/webauthn/request.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/telemetry.go" beforeDir="false" afterPath="$PROJECT_DIR$/telemetry.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,6 +89,8 @@
       <recent name="$PROJECT_DIR$/internal/app" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/apps/webauthn/internal" />
+      <recent name="$PROJECT_DIR$/apps/oauth2/internal" />
       <recent name="$PROJECT_DIR$/internal/gin" />
     </key>
   </component>
@@ -119,7 +133,8 @@
     <MESSAGE value="Implement registry through gRPC and protobuffers" />
     <MESSAGE value="Started implementing registry app" />
     <MESSAGE value="Started implementing health checks" />
-    <option name="LAST_COMMIT_MESSAGE" value="Started implementing health checks" />
+    <MESSAGE value="Refactor files a bit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor files a bit" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
