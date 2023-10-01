@@ -25,7 +25,7 @@ message HealthCheck {
   string endpoint = 1;
   int32 interval = 2;
   int32 healthy_threshold = 3;
-  string healthy_status = 4;
+  int32 healthy_status = 4;
 }
 
 message RegistrationResponse {

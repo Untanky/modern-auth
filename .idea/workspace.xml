@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Implement registry through gRPC and protobuffers">
-      <change afterPath="$PROJECT_DIR$/apps/registry/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/core/list.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/registry/server.go" afterDir="false" />
+    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Started implementing registry app">
+      <change afterPath="$PROJECT_DIR$/apps/registry/health_check.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/registry/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/registry/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/registry/registry.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/registry/registry.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/registry/registry.proto" beforeDir="false" afterPath="$PROJECT_DIR$/registry/registry.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/registry/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/registry/server.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -107,7 +109,8 @@
     <MESSAGE value="Re-introduce concept of controller" />
     <MESSAGE value="Started implementing api spec" />
     <MESSAGE value="Implement registry through gRPC and protobuffers" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implement registry through gRPC and protobuffers" />
+    <MESSAGE value="Started implementing registry app" />
+    <option name="LAST_COMMIT_MESSAGE" value="Started implementing registry app" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

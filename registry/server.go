@@ -8,23 +8,43 @@ import (
 
 type registryServer struct {
 	store core.KeyValueStore[string, *RegistrationInfo]
-	index core.List[string]
+	index core.KeyValueStore[string, core.List[string]]
+
+	registerChan   chan<- *RegistrationInfo
+	unregisterChan chan<- *RegistrationInfo
 }
 
-func NewRegistryServer() RegistryServer {
-	return &registryServer{}
+func NewRegistryServer(
+	store core.KeyValueStore[string, *RegistrationInfo],
+	index core.KeyValueStore[string, core.List[string]],
+	registerChan chan<- *RegistrationInfo,
+	unregisterChan chan<- *RegistrationInfo,
+) RegistryServer {
+	return &registryServer{
+		store:          store,
+		index:          index,
+		registerChan:   registerChan,
+		unregisterChan: unregisterChan,
+	}
 }
 
 func (r registryServer) Register(ctx context.Context, info *RegistrationInfo) (*RegistrationResponse, error) {
 	id := uuid.New().String()
+	info.Id = id
 	err := r.store.WithContext(ctx).Set(id, info)
 	if err != nil {
 		return nil, err
 	}
-	_, err = r.index.WithContext(ctx).Append(id)
+	list, err := r.index.WithContext(ctx).Get(info.GetName())
 	if err != nil {
 		return nil, err
 	}
+	_, err = list.Append(id)
+	if err != nil {
+		return nil, err
+	}
+
+	r.registerChan <- info
 
 	response := &RegistrationResponse{
 		Id:    id,
@@ -34,20 +54,33 @@ func (r registryServer) Register(ctx context.Context, info *RegistrationInfo) (*
 }
 
 func (r registryServer) Unregister(ctx context.Context, response *RegistrationResponse) (*Empty, error) {
-	err := r.store.WithContext(ctx).Delete(response.Id)
+	store := r.store.WithContext(ctx)
+	info, err := store.Get(response.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	index, err := r.index.Index(response.Id)
+	err = r.store.WithContext(ctx).Delete(response.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.index.Remove(index)
+	list, err := r.index.WithContext(ctx).Get(info.GetName())
 	if err != nil {
 		return nil, err
 	}
+
+	index, err := list.Index(response.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = list.Remove(index)
+	if err != nil {
+		return nil, err
+	}
+
+	r.unregisterChan <- info
 
 	return &Empty{}, nil
 }

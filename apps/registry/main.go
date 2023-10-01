@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/Untanky/modern-auth/internal/core"
 	"github.com/Untanky/modern-auth/registry"
 	"google.golang.org/grpc"
 	"net"
@@ -35,8 +36,13 @@ func main() {
 
 	var opts []grpc.ServerOption
 
+	store := core.NewInMemoryKeyValueStore[*registry.RegistrationInfo]()
+	index := core.NewInMemoryKeyValueStore[core.List[string]]()
+	registerChan := make(chan *registry.RegistrationInfo)
+	unregisterChan := make(chan *registry.RegistrationInfo)
+
 	grpcServer := grpc.NewServer(opts...)
-	registry.RegisterRegistryServer(grpcServer, registry.NewRegistryServer())
+	registry.RegisterRegistryServer(grpcServer, registry.NewRegistryServer(store, index, registerChan, unregisterChan))
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		panic(err)
