@@ -1,0 +1,264 @@
+openapi: 3.0.3
+info:
+  title: ModernAuth API
+  description: ModernAuth API
+  version: 0.1.0
+servers:
+  - url: 'http://localhost:8080/api/v1'
+tags:
+  - name: OAuth2
+    description: OAuth2 is an authorization framework implemented
+      by ModernAuth. Through this authorization framework, resource
+      servers can make sure that users and clients have permitted
+      access to an resource.
+paths:
+  /oauth2/client:
+    get:
+      summary: List all clients
+      description: List all clients the user has access to.
+        After checking the access token, the endpoint returns all clients
+        the entity has access to. The list may be unsorted.
+      operationId: listClients
+      tags:
+        - OAuth2
+      security:
+        - OAuth2:
+          - client
+      responses:
+        200:
+          description: Successfully fetched all clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/InternalServer'
+    post:
+      summary: Create a new client
+      operationId: createClient
+      tags:
+        - OAuth2
+      security:
+        - OAuth2:
+          - client
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+        required: true
+      responses:
+        201:
+          description: Successfully created client
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        500:
+          $ref: '#/components/responses/InternalServer'
+  /oauth2/client/{clientId}:
+    get:
+      summary: Fetch client
+      description: Retrieve a single client by client id
+      operationId: getClientById
+      tags:
+        - OAuth2
+      security:
+        - OAuth2:
+          - client
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      responses:
+        200:
+          description: Successfully fetched client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/InternalServer'
+    delete:
+      summary: Delete client
+      description: Delete a client by client id
+      operationId: deleteClient
+      tags:
+        - OAuth2
+      security:
+        - OAuth2:
+          - client
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      responses:
+        200:
+          description: Successfully fetched client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+        500:
+          $ref: '#/components/responses/InternalServer'
+  /oauth2/authorize:
+    get:
+      summary: Start the authorization code flow
+      description: Start the authorization code flow
+      operationId: startAuthorization
+      tags:
+        - OAuth2
+      responses:
+        302:
+          description: Handled authorization request
+          headers:
+            Location:
+              description: The location to redirect to
+              example: /
+              required: true
+  /oauth2/authorize/succeed:
+    get:
+      summary: Successfully handle authorization
+      operationId: succeedAuthorization
+      tags:
+        - OAuth2
+      responses:
+        302:
+          description: Handled authorization request
+          headers:
+            Location:
+              description: The location to redirect to
+              example: /
+              required: true
+  /oauth2/token:
+    post:
+      summary: Retrieve token
+      operationId: retrieveToken
+      tags:
+        - OAuth2
+      responses:
+        200:
+          description: Successfully retrieved tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+  /oauth2/token/validate:
+    post:
+      summary: Validate token and retrieve grant
+      operationId: retrieveGrant
+      tags:
+        - OAuth2
+      responses:
+        200:
+          description: Successfully retrieved grant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grant'
+
+components:
+  parameters:
+    ClientId:
+      name: clientId
+      description: The unique identifier of the client
+      required: true
+      schema:
+        type: string
+        example: 6d8fd8fb-841f-4bd1-8aed-26c1305461d8
+      in: path
+  responses:
+    BadRequest:
+      description: "Bad request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: "Resource requires authorization"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: "Resource access forbidden"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: "Resource not found"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServer:
+      description: "Internal Server error"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Client:
+      description: Representation of a client
+      type: object
+      properties:
+        clientId:
+          description: Identifier for the client
+          type: string
+        scopes:
+          description: Scopes assigned to the client
+          type: array
+          items:
+            type: string
+        redirectURIs:
+          description: Allowed redirect URIs for the client
+          type: array
+          items:
+            type: string
+    Token:
+      description: Grant object
+      type: object
+    Grant:
+      description: Grant object
+      type: object
+    Error:
+      description: Error object
+      type: object
+      properties:
+        error:
+          description: Error name
+          type: string
+          required: true
+        errorDescription:
+          description: Description of the error
+          type: string
+          required: true
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: OAuth2 implementation
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth2/authorize
+          tokenUrl: /oauth2/token
+          scopes:
+            client: Access to client resources

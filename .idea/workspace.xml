@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Moved client implementation to new package">
+    <list default="true" id="c9e34eb7-c93a-458a-9c3a-f70cafda1937" name="Changes" comment="Re-introduce concept of controller">
+      <change afterPath="$PROJECT_DIR$/modern-auth-api.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/oauth2/authorization.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/authorization.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/oauth2/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/oauth2/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/oauth2/token.go" beforeDir="false" afterPath="$PROJECT_DIR$/apps/oauth2/token.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,6 +18,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Go File" />
+        <option value="OpenAPI" />
       </list>
     </option>
   </component>
@@ -94,7 +93,8 @@
     <MESSAGE value="Moved handler implementations to new package" />
     <MESSAGE value="Implement logic for application start up" />
     <MESSAGE value="Moved client implementation to new package" />
-    <option name="LAST_COMMIT_MESSAGE" value="Moved client implementation to new package" />
+    <MESSAGE value="Re-introduce concept of controller" />
+    <option name="LAST_COMMIT_MESSAGE" value="Re-introduce concept of controller" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
