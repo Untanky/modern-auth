@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option go_package = "github.com/Untanky/modern-auth/registry";
+
+package registry;
+
+service Registry {
+  rpc Register(RegistrationInfo) returns (RegistrationResponse) {}
+  rpc Unregister(RegistrationResponse) returns (Empty) {}
+  rpc Subscribe(EndpointRequest) returns (stream EndpointResponse) {}
+}
+
+message Empty {}
+
+message RegistrationInfo {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string url = 4;
+  HealthCheck health_check = 5;
+  string deployment_type = 6;
+}
+
+message HealthCheck {
+  string endpoint = 1;
+  int32 interval = 2;
+  int32 healthy_threshold = 3;
+  string healthy_status = 4;
+}
+
+message RegistrationResponse {
+  string id = 1;
+  string token = 2;
+}
+
+message EndpointRequest {
+  string name = 1;
+}
+
+message EndpointResponse {
+  repeated RegistrationInfo registration_info = 1;
+}
